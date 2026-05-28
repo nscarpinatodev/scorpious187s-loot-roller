@@ -733,6 +733,37 @@
   background: rgba(0, 0, 0, 0.03);
 }
 
+.reward-list-section .lottery-item {
+  grid-template-columns: 36px 1fr auto auto;
+}
+
+.item-qty-control {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.item-qty-x {
+  font-size: 11px;
+  color: var(--color-text-light-7);
+}
+
+.item-qty-input {
+  width: 44px;
+  text-align: center;
+  padding: 2px 4px;
+  font-size: 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.item-qty-input:focus {
+  outline: none;
+  border-color: var(--color-border-highlight);
+}
+
 .item-searching,
 .item-no-results,
 .item-roll-prompt,

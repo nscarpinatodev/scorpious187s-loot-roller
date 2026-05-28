@@ -25,7 +25,9 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
   };
 
   constructor(options = {}) {
-    super(options);
+    const { onConfirm, ...superOptions } = options;
+    super(superOptions);
+    this._onConfirm  = onConfirm ?? null;  // optional callback from Quest Tracker integration
     this._rarities   = ["uncommon"];
     this._types      = [];            // empty = all types
     this._current    = null;          // current Item document or stub
@@ -56,15 +58,17 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
         : null,
       items: this._items.map((item, idx) => ({
         idx,
-        name:   item.name,
-        img:    item.img ?? "icons/svg/item-bag.svg",
-        rarity: item.system?.rarity ?? item.rarity ?? "common",
-        stub:   !!item.stub,
+        name:     item.name,
+        img:      item.img ?? "icons/svg/item-bag.svg",
+        rarity:   item.system?.rarity ?? item.rarity ?? "common",
+        stub:     !!item.stub,
+        quantity: item.system?.quantity ?? 1,
       })),
-      searching:  this._searching,
-      noResults:  this._noResults,
-      rolled:     this._rolled,
-      hasAdapter: !!adapter,
+      searching:        this._searching,
+      noResults:        this._noResults,
+      rolled:           this._rolled,
+      hasAdapter:       !!adapter,
+      questTrackerMode: !!this._onConfirm,
     };
   }
 
@@ -114,8 +118,22 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.element.querySelector("[data-action=distribute]")
       ?.addEventListener("click", () => this._distribute());
 
+    this.element.querySelector("[data-action=add-to-quest]")
+      ?.addEventListener("click", () => this._addToQuest());
+
     this.element.querySelector("[data-action=save-list]")
       ?.addEventListener("click", () => this._saveList());
+
+    // Quantity edits — write back into the stored plain-object so distribute/save carry it
+    this.element.querySelectorAll(".item-qty-input").forEach((input) => {
+      input.addEventListener("change", () => {
+        const idx = parseInt(input.dataset.idx);
+        const qty = Math.max(1, parseInt(input.value) || 1);
+        const item = this._items[idx];
+        if (item?.system) item.system.quantity = qty;
+        input.value = qty;
+      });
+    });
 
     // Drag-and-drop from Compendium onto reward list
     const dropZone = this.element.querySelector(".reward-list-drop-zone");
@@ -140,7 +158,7 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (data.type !== "Item") return;
     const item = await fromUuid(data.uuid);
     if (!item) return;
-    this._items.push(item);
+    this._items.push(item.toObject());
     this.render(false);
   }
 
@@ -181,10 +199,19 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   async _addItem() {
     if (!this._current) return;
-    this._items.push(this._current);
+    this._items.push(this._current.toObject?.() ?? { ...this._current });
     this._current = null;
     this.render(false);
     await this._rollItem();
+  }
+
+  async _addToQuest() {
+    if (!this._items.length) {
+      ui.notifications.warn(game.i18n.localize("LOOTROLLER.quest.noItems"));
+      return;
+    }
+    this._onConfirm(this._items);
+    this.close();
   }
 
   async _distribute() {

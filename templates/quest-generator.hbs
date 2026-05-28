@@ -113,6 +113,13 @@
                 <span class="item-rarity {{lootrollerRarityClass this.rarity}}">{{this.rarity}}</span>
               {{/if}}
             </div>
+            {{#unless this.stub}}
+              <div class="item-qty-control">
+                <span class="item-qty-x">×</span>
+                <input type="number" class="item-qty-input" data-idx="{{this.idx}}"
+                  value="{{this.quantity}}" min="1" />
+              </div>
+            {{/unless}}
             <button type="button" class="btn-icon-remove" data-action="remove-item" data-idx="{{this.idx}}"
               title="{{localize 'LOOTROLLER.quest.removeItem'}}">
               <i class="fa-solid fa-xmark"></i>
@@ -122,10 +129,17 @@
       </div>
 
       <div class="reward-actions">
-        <button type="button" class="btn-distribute" data-action="distribute">
-          <i class="fa-solid fa-dice-d20"></i>
-          {{localize "LOOTROLLER.quest.distribute"}}
-        </button>
+        {{#if questTrackerMode}}
+          <button type="button" class="btn-add-to-quest" data-action="add-to-quest">
+            <i class="fa-solid fa-list-check"></i>
+            {{localize "LOOTROLLER.quest.addToQuest"}}
+          </button>
+        {{else}}
+          <button type="button" class="btn-distribute" data-action="distribute">
+            <i class="fa-solid fa-dice-d20"></i>
+            {{localize "LOOTROLLER.quest.distribute"}}
+          </button>
+        {{/if}}
         <button type="button" class="btn-save-list" data-action="save-list">
           <i class="fa-solid fa-floppy-disk"></i>
           {{localize "LOOTROLLER.quest.saveForLater"}}

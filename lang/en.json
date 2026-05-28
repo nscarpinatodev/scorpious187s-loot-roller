@@ -218,6 +218,7 @@
       "rewardList": "Reward List",
       "distribute": "Distribute Items",
       "saveForLater": "Save for Later",
+      "addToQuest": "Add to Quest",
       "noItems": "No items in the reward list yet.",
       "dragDropHint": "Drag items from the Compendium here, or roll above"
     },
