@@ -37,4 +37,16 @@ export const LootRoller = {
     const { LootHubApp } = game.modules.get("loot-roller").apps;
     new LootHubApp().render(true);
   },
+
+  /**
+   * Open the LotterySetupApp pre-populated with items and coins.
+   * Intended for external modules (e.g. Quest Tracker) to hand off resolved
+   * loot directly into the lottery flow without going through the generator.
+   *
+   * @param {{ items: Array<Item>, coins?: Record<string, number> }} lootResult
+   */
+  startLottery({ items = [], coins = {} } = {}) {
+    const { LotterySetupApp } = game.modules.get("loot-roller").apps;
+    new LotterySetupApp({ items, coins }).render(true);
+  },
 };
