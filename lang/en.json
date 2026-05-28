@@ -220,7 +220,8 @@
       "saveForLater": "Save for Later",
       "addToQuest": "Add to Quest",
       "noItems": "No items in the reward list yet.",
-      "dragDropHint": "Drag items from the Compendium here, or roll above"
+      "dragDropHint": "Drag items from the Compendium here, or roll above",
+      "noSpells": "Spells cannot be added as quest rewards."
     },
 
     "shop": {

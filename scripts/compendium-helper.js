@@ -53,6 +53,7 @@ export const CompendiumHelper = {
       const index = await this.getIndex(packId);
       if (!index) continue;
       for (const entry of index) {
+        if (entry.type === "spell") continue;
         pool.push({
           packId,
           id:     entry._id,
@@ -155,6 +156,7 @@ export const CompendiumHelper = {
       if (!index) continue;
 
       for (const entry of index) {
+        if (entry.type === "spell") continue;
         if (type && entry.type !== type) continue;
         if (entry.system?.level?.value !== level) continue;
 
@@ -225,6 +227,7 @@ export const CompendiumHelper = {
       if (!index) continue;
 
       for (const entry of index) {
+        if (entry.type === "spell") continue;
         if (type && entry.type !== type) continue;
         const entryRarity = (entry.system?.rarity ?? "").toLowerCase().replace(/\s+/g, "");
         if (entryRarity === rarityNorm) candidates.push({ packId, id: entry._id });

@@ -158,7 +158,13 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (data.type !== "Item") return;
     const item = await fromUuid(data.uuid);
     if (!item) return;
-    this._items.push(item.toObject());
+    if (item.type === "spell") {
+      ui.notifications.warn(game.i18n.localize("LOOTROLLER.quest.noSpells"));
+      return;
+    }
+    const stored = item.toObject();
+    stored.uuid = item.uuid;
+    this._items.push(stored);
     this.render(false);
   }
 
@@ -199,7 +205,9 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   async _addItem() {
     if (!this._current) return;
-    this._items.push(this._current.toObject?.() ?? { ...this._current });
+    const data = this._current.toObject?.() ?? { ...this._current };
+    if (this._current.uuid) data.uuid = this._current.uuid;
+    this._items.push(data);
     this._current = null;
     this.render(false);
     await this._rollItem();
