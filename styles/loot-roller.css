@@ -722,9 +722,21 @@
   min-height: 64px;
 }
 
+.reward-list-drop-zone {
+  border: 2px dashed transparent;
+  border-radius: 6px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.reward-list-drop-zone.drag-over {
+  border-color: var(--color-border-highlight);
+  background: rgba(0, 0, 0, 0.03);
+}
+
 .item-searching,
 .item-no-results,
-.item-roll-prompt {
+.item-roll-prompt,
+.reward-drop-hint {
   text-align: center;
   padding: 16px;
   color: var(--color-text-light-7);

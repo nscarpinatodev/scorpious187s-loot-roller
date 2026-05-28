@@ -95,14 +95,14 @@
     {{/unless}}
   {{/unless}}
 
-  {{!-- Accumulated reward list --}}
-  {{#if items.length}}
-    <div class="reward-list-section">
-      <h3 class="section-label">
-        <i class="fa-solid fa-gift"></i>
-        {{localize "LOOTROLLER.quest.rewardList"}}
-        <span class="item-count">({{items.length}})</span>
-      </h3>
+  {{!-- Accumulated reward list (also serves as a drop target for Compendium items) --}}
+  <div class="reward-list-section reward-list-drop-zone">
+    <h3 class="section-label">
+      <i class="fa-solid fa-gift"></i>
+      {{localize "LOOTROLLER.quest.rewardList"}}
+      {{#if items.length}}<span class="item-count">({{items.length}})</span>{{/if}}
+    </h3>
+    {{#if items.length}}
       <div class="item-list">
         {{#each items}}
           <div class="lottery-item {{#if this.stub}}stub{{/if}}">
@@ -131,8 +131,13 @@
           {{localize "LOOTROLLER.quest.saveForLater"}}
         </button>
       </div>
-    </div>
-  {{/if}}
+    {{else}}
+      <div class="reward-drop-hint">
+        <i class="fa-solid fa-arrow-down-to-line"></i>
+        {{localize "LOOTROLLER.quest.dragDropHint"}}
+      </div>
+    {{/if}}
+  </div>
 
   {{/unless}}
 </div>

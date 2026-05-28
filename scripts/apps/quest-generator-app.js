@@ -116,6 +116,32 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     this.element.querySelector("[data-action=save-list]")
       ?.addEventListener("click", () => this._saveList());
+
+    // Drag-and-drop from Compendium onto reward list
+    const dropZone = this.element.querySelector(".reward-list-drop-zone");
+    if (dropZone) {
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+      dropZone.addEventListener("dragleave", (e) => {
+        if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove("drag-over");
+      });
+      dropZone.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        await this._onDropItem(e);
+      });
+    }
+  }
+
+  async _onDropItem(event) {
+    const data = TextEditor.getDragEventData(event);
+    if (data.type !== "Item") return;
+    const item = await fromUuid(data.uuid);
+    if (!item) return;
+    this._items.push(item);
+    this.render(false);
   }
 
   async _rollItem() {
