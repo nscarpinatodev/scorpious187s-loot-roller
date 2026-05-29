@@ -57,30 +57,35 @@ const HOARD_COINS = {
 
 /**
  * Hoard item configuration per CR bracket.
- *   magic: { rarity: [min, max] } — random compendium items per rarity
- *   gems:  { count: [min, max], tiers: [gpValues] } — DMG gem table entries
- *   art:   { count: [min, max], tiers: [gpValues] } — DMG art object table entries
+ *   magic:   { rarity: [min, max] } — random compendium items per rarity
+ *   scrolls: { rarity: [min, max] } — named spell scrolls at the rarity-appropriate level
+ *   gems:    { count: [min, max], tiers: [gpValues] } — DMG gem table entries
+ *   art:     { count: [min, max], tiers: [gpValues] } — DMG art object table entries
  */
 const HOARD_ITEMS = {
   cr0_4: {
-    magic: { common: [2, 6],  uncommon: [0, 3],  rare: [0, 0], veryRare: [0, 0], legendary: [0, 0] },
-    gems:  { count: [1, 4],   tiers: [10, 50]    },
-    art:   { count: [0, 3],   tiers: [25]         },
+    magic:   { common: [2, 5],  uncommon: [0, 2],  rare: [0, 0], veryRare: [0, 0], legendary: [0, 0] },
+    scrolls: { common: [0, 2],  uncommon: [0, 1],  rare: [0, 0], veryRare: [0, 0], legendary: [0, 0] },
+    gems:    { count: [1, 4],   tiers: [10, 50]    },
+    art:     { count: [0, 3],   tiers: [25]         },
   },
   cr5_10: {
-    magic: { common: [1, 4],  uncommon: [2, 6],  rare: [0, 2], veryRare: [0, 0], legendary: [0, 0] },
-    gems:  { count: [2, 6],   tiers: [50, 100]   },
-    art:   { count: [1, 4],   tiers: [25, 250]   },
+    magic:   { common: [1, 3],  uncommon: [2, 5],  rare: [0, 2], veryRare: [0, 0], legendary: [0, 0] },
+    scrolls: { common: [0, 1],  uncommon: [0, 2],  rare: [0, 1], veryRare: [0, 0], legendary: [0, 0] },
+    gems:    { count: [2, 6],   tiers: [50, 100]   },
+    art:     { count: [1, 4],   tiers: [25, 250]   },
   },
   cr11_16: {
-    magic: { common: [0, 3],  uncommon: [2, 5],  rare: [1, 4], veryRare: [0, 2], legendary: [0, 0] },
-    gems:  { count: [2, 6],   tiers: [100, 500]  },
-    art:   { count: [1, 4],   tiers: [250, 750]  },
+    magic:   { common: [0, 2],  uncommon: [2, 4],  rare: [1, 3], veryRare: [0, 2], legendary: [0, 0] },
+    scrolls: { common: [0, 0],  uncommon: [0, 1],  rare: [0, 2], veryRare: [0, 1], legendary: [0, 0] },
+    gems:    { count: [2, 6],   tiers: [100, 500]  },
+    art:     { count: [1, 4],   tiers: [250, 750]  },
   },
   cr17plus: {
-    magic: { common: [0, 2],  uncommon: [1, 4],  rare: [2, 5], veryRare: [1, 3], legendary: [0, 2] },
-    gems:  { count: [3, 8],   tiers: [500, 1000, 5000]  },
-    art:   { count: [2, 6],   tiers: [750, 2500, 7500]  },
+    magic:   { common: [0, 1],  uncommon: [1, 3],  rare: [2, 4], veryRare: [1, 3], legendary: [0, 2] },
+    scrolls: { common: [0, 0],  uncommon: [0, 0],  rare: [0, 2], veryRare: [0, 2], legendary: [0, 1] },
+    gems:    { count: [3, 8],   tiers: [500, 1000, 5000]  },
+    art:     { count: [2, 6],   tiers: [750, 2500, 7500]  },
   },
 };
 
@@ -293,8 +298,10 @@ function _parseScrollRef(name) {
 }
 
 /**
- * Find a random spell document at the given level (0 = cantrip) from the
- * dnd5e spells compendium.
+ * Find a random spell document at the given level (0 = cantrip).
+ * Fetches a fresh index directly from the pack so level data is always present.
+ * Handles both nested (entry.system.level) and flat-key (entry["system.level"])
+ * index formats, which differ between Foundry versions.
  *
  * @param {number} level
  * @returns {Promise<Item|null>}
@@ -305,71 +312,105 @@ async function _findRandomSpellAtLevel(level) {
     "dnd5e.spells",
   ].filter((id) => game.packs.has(id));
 
-  for (const packId of spellPacks) {
-    const index = await CompendiumHelper.getIndex(packId);
-    if (!index) continue;
-    const candidates = [...index].filter(
-      (e) => e.type === "spell" && (e.system?.level ?? 0) === level
-    );
-    if (!candidates.length) continue;
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    return game.packs.get(packId).getDocument(pick._id);
+  if (!spellPacks.length) {
+    console.warn("LootRoller | No spell compendiums found — cannot create spell scrolls");
+    return null;
   }
+
+  for (const packId of spellPacks) {
+    const pack = game.packs.get(packId);
+    if (!pack) continue;
+
+    // Fetch a fresh index with just the fields we need
+    const index = await pack.getIndex({ fields: ["name", "type", "system.level", "img"] })
+      .catch((err) => { console.warn("LootRoller | getIndex failed:", err); return null; });
+    if (!index) continue;
+
+    const candidates = [...index].filter((e) => {
+      if (e.type !== "spell") return false;
+      // Some Foundry versions store extra fields as nested objects, others as dot-key strings
+      const spellLevel = e.system?.level ?? e["system.level"];
+      return Number(spellLevel) === level;
+    });
+
+    if (!candidates.length) continue;
+
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    return pack.getDocument(pick._id).catch(() => null);
+  }
+
+  console.warn(`LootRoller | No spells found at level ${level}`);
   return null;
 }
 
 /**
- * Create a spell scroll plain-data object from a spell document.
- * Calls dnd5e's createScrollFromSpell API and applies DMG/XGtE market pricing.
- * Passes { temporary: true } so the scroll is never persisted to the world.
+ * Build a spell scroll item data object from a spell document.
+ * No dnd5e API calls, no dialogs — fully automated.
+ *
+ * Copies the spell's activities (including Cast) so the scroll works in-game,
+ * and applies DMG/XGtE pricing. Uses only plain JS (no foundry.utils.*) so it
+ * works across all Foundry versions.
  *
  * @param {Item} spellDoc
- * @returns {Promise<object|null>}
+ * @returns {object|null}
  */
-async function _createScrollFromSpellDoc(spellDoc) {
-  const createFn = CONFIG.Item?.documentClass?.createScrollFromSpell;
-  if (typeof createFn !== "function") {
-    console.warn("LootRoller | dnd5e createScrollFromSpell API not available");
-    return null;
-  }
+function _createScrollFromSpellDoc(spellDoc) {
+  if (!spellDoc) return null;
 
-  const level = spellDoc.system?.level ?? 0;
-  const { rarity, gp } = SCROLL_LEVEL_DATA[Math.min(level, 9)] ?? SCROLL_LEVEL_DATA[1];
+  const level      = spellDoc.system?.level ?? 0;
+  const scrollInfo = SCROLL_LEVEL_DATA[Math.min(level, 9)] ?? SCROLL_LEVEL_DATA[1];
 
-  let scrollDoc;
+  // Serialize via toObject() if available, else shallow-copy
+  let spellData = {};
   try {
-    scrollDoc = await createFn.call(CONFIG.Item.documentClass, spellDoc, {
-      temporary:    true,
-      renderSheet:  false,
-      dialog:       false,
-    });
-  } catch (err) {
-    console.error("LootRoller | createScrollFromSpell failed:", err);
-    return null;
-  }
-  if (!scrollDoc) return null;
-
-  const data = scrollDoc.toObject?.() ?? { ...scrollDoc };
-  delete data._id;
-
-  if (data.system) {
-    data.system.price  = { value: gp, denomination: "gp" };
-    data.system.rarity = rarity;
+    spellData = spellDoc.toObject ? spellDoc.toObject() : { ...spellDoc };
+  } catch (e) {
+    spellData = { name: spellDoc.name, img: spellDoc.img, system: { ...spellDoc.system } };
   }
 
-  // Guard: if { temporary: true } was ignored and a world item was created, clean it up
-  if (scrollDoc.id && game.items?.has(scrollDoc.id)) {
-    await scrollDoc.delete().catch(() => {});
-  }
+  // Deep-copy using JSON round-trip (works everywhere, handles DataModel instances)
+  const deepCopy = (val, fallback) => {
+    try   { return JSON.parse(JSON.stringify(val ?? fallback)); }
+    catch { return fallback; }
+  };
 
-  return data;
+  const activities  = deepCopy(spellData.system?.activities, {});
+  const description = deepCopy(spellData.system?.description, { value: "", chat: "" });
+
+  return {
+    name:        `Spell Scroll of ${spellDoc.name}`,
+    type:        "consumable",
+    img:         spellDoc.img ?? "icons/sundries/scrolls/scroll-plain-tan-red.webp",
+    effects:     [],
+    flags:       {},
+    _sourceUuid: spellDoc.uuid,
+    system: {
+      description,
+      identifier:   "",
+      quantity:     1,
+      weight:       { value: 0, units: "lb" },
+      price:        { value: scrollInfo.gp, denomination: "gp" },
+      rarity:       scrollInfo.rarity,
+      identified:   true,
+      unidentified: { description: "" },
+      properties:   [],
+      type:         { value: "scroll", subtype: "" },
+      activities,
+      uses:         { value: 1, max: "1", recovery: [], spent: 0, prompt: true },
+    },
+  };
 }
 
 /** Find a random spell at `level` and return scroll item data. */
 async function _createScrollAtLevel(level) {
   const spellDoc = await _findRandomSpellAtLevel(level);
   if (!spellDoc) return null;
-  return _createScrollFromSpellDoc(spellDoc);
+  try {
+    return _createScrollFromSpellDoc(spellDoc);
+  } catch (err) {
+    console.error("LootRoller | _createScrollFromSpellDoc failed:", err);
+    return null;
+  }
 }
 
 /**
@@ -492,6 +533,17 @@ export class DnD5eAdapter {
             itemRefs.push({ _placeholder: true, rarity });
           }
         }
+
+        // Spell scrolls — dedicated slots so high-level scrolls always appear at the right tier
+        for (const [rarity, [min, max]] of Object.entries(tier.scrolls ?? {})) {
+          if (max === 0) continue;
+          const count    = _randInt(min, max);
+          const levels   = SCROLL_RARITY_LEVELS[rarity.toLowerCase().replace(/\s+/g, "")] ?? [1];
+          for (let i = 0; i < count; i++) {
+            const spellLevel = levels[Math.floor(Math.random() * levels.length)];
+            itemRefs.push({ _scrollLevel: spellLevel, rarity });
+          }
+        }
       }
     }
 
@@ -520,8 +572,28 @@ export class DnD5eAdapter {
           excludeNames: allowDupes ? null : usedNames,
         });
         if (item) {
+          // Generic spell scroll → replace with a named scroll containing a real spell
+          const isGenericScroll = (item.type === "consumable" && item.system?.type?.value === "scroll")
+            || /^Spell Scroll/i.test(item.name);
+
+          if (isGenericScroll) {
+            // Use the placeholder rarity to pick the appropriate spell level range,
+            // then select randomly within it — don't use the scroll item's name level
+            // since a generic pool scroll might have the wrong level for this rarity tier.
+            const rarityKey   = (ref.rarity ?? "").toLowerCase().replace(/\s+/g, "");
+            const levels      = SCROLL_RARITY_LEVELS[rarityKey] ?? [_parseScrollRef(item.name) ?? 1];
+            const spellLevel  = levels[Math.floor(Math.random() * levels.length)];
+            const namedScroll = await _createScrollAtLevel(spellLevel);
+
+            if (namedScroll) {
+              usedNames.add(namedScroll.name);
+              resolved.push(namedScroll);
+              continue;
+            }
+          }
+
           usedNames.add(item.name);
-          // Rare and above arrive on actors as unidentified — GM still sees real name in setup
+          // Rare and above arrive on actors as unidentified
           const MYSTIFY = new Set(["rare", "veryRare", "legendary"]);
           if (MYSTIFY.has(ref.rarity)) {
             const data = item.toObject();
@@ -718,8 +790,13 @@ export class DnD5eAdapter {
    * @param {Item} spellDoc
    * @returns {Promise<object|null>}
    */
-  static async createScrollFromSpell(spellDoc) {
-    return _createScrollFromSpellDoc(spellDoc);
+  static createScrollFromSpell(spellDoc) {
+    try {
+      return _createScrollFromSpellDoc(spellDoc);
+    } catch (err) {
+      console.error("LootRoller | createScrollFromSpell failed:", err);
+      return null;
+    }
   }
 }
 
