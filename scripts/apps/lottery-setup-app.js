@@ -38,30 +38,39 @@ export class LotterySetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._lootResult = lootResult;
     /** @type {Record<number, "lottery"|"stash"|"discard">} */
     this._destinations = {};
+    /** @type {Record<number, boolean>} idx → true = mystified (unidentified for players) */
+    this._mystified = {};
     /** @type {"equal"|"stash"} */
     this._currencyMode = game.settings.get("loot-roller", "currencyDistribution") ?? "equal";
+
+    // Seed mystified state from item data (rare+ items auto-mystified by resolveItems)
+    lootResult.items.forEach((item, idx) => {
+      if (item.system?.identified === false) this._mystified[idx] = true;
+    });
   }
 
   async _prepareContext(options) {
     const { coins, items } = this._lootResult;
-    const stashUuid = game.settings.get("loot-roller", "partyStashActor");
+    const stashUuid  = game.settings.get("loot-roller", "partyStashActor");
     const stashActor = stashUuid ? await fromUuid(stashUuid) : null;
 
     return {
       coins,
       formattedCoins: formatCoins(coins),
-      hasCoins: Object.values(coins).some((v) => v > 0),
-      currencyMode: this._currencyMode,
+      hasCoins:       Object.values(coins).some((v) => v > 0),
+      currencyMode:   this._currencyMode,
       items: items.map((item, idx) => ({
         idx,
-        name: item.name ?? "Unknown Item",
-        img: item.img ?? "icons/svg/item-bag.svg",
-        rarity: item.system?.rarity ?? item.rarity ?? "",
-        stub: !!item.stub,
-        dest: this._destinations[idx] ?? "lottery",
+        name:        item.name ?? "Unknown Item",
+        img:         item.img  ?? "icons/svg/item-bag.svg",
+        rarity:      item.system?.rarity ?? item.rarity ?? "",
+        stub:        !!item.stub,
+        dest:        this._destinations[idx] ?? "lottery",
+        mystified:   this._mystified[idx] ?? false,
+        sourceUuid:  item._sourceUuid ?? item.uuid ?? null,
       })),
       stashActorName: stashActor?.name ?? null,
-      hasStash: !!stashActor,
+      hasStash:       !!stashActor,
     };
   }
 
@@ -75,11 +84,28 @@ export class LotterySetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const idx  = parseInt(btn.dataset.idx);
         const dest = btn.dataset.dest;
         this._destinations[idx] = dest;
-
-        // Update buttons in the same row without a full re-render
         btn.closest(".item-destination").querySelectorAll(".dest-btn").forEach((b) => {
           b.classList.toggle("selected", b === btn);
         });
+      });
+    });
+
+    // Mystify toggle buttons
+    this.element.querySelectorAll("[data-action=toggle-mystify]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const idx = parseInt(btn.dataset.idx);
+        this._mystified[idx] = !(this._mystified[idx] ?? false);
+        this.render(false);
+      });
+    });
+
+    // View item card (GM only)
+    this.element.querySelectorAll("[data-action=view-item]").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const idx = parseInt(btn.dataset.idx);
+        await _openItemSheet(this._lootResult.items[idx]);
       });
     });
 
@@ -133,9 +159,16 @@ export class LotterySetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     for (let i = 0; i < items.length; i++) {
       const dest = app._destinations[i] ?? "lottery";
-      if (dest === "lottery")      lotteryItems.push(items[i]);
-      else if (dest === "stash")   stashItems.push(items[i]);
-      // discard: ignored
+      if (dest === "discard") continue;
+
+      // Serialize to plain object so we can apply the mystify state
+      const raw  = items[i];
+      const data = raw.toObject?.() ?? { ...raw };
+      delete data._id;
+      if (data.system) data.system.identified = !(app._mystified[i] ?? false);
+
+      if (dest === "lottery") lotteryItems.push(data);
+      else if (dest === "stash") stashItems.push(data);
     }
 
     if (lotteryItems.length === 0 && stashItems.length === 0) {
@@ -154,10 +187,25 @@ export class LotterySetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await manager.start({
       lotteryItems,
       stashItems,
-      coins: app._lootResult.coins,
+      coins:        app._lootResult.coins,
       currencyMode: app._currencyMode,
     });
 
     gmApp.render(true);
   }
+}
+
+/** Open an item sheet for any item — document, plain object, or UUID-backed data. */
+async function _openItemSheet(item) {
+  if (!item) return;
+  const uuid = item._sourceUuid ?? item.uuid;
+  if (uuid) {
+    const doc = await fromUuid(uuid).catch(() => null);
+    if (doc) { doc.sheet.render(true); return; }
+  }
+  // Fallback: temporary in-memory item
+  const data = item.toObject?.() ?? { ...item };
+  delete data._id;
+  const temp = new CONFIG.Item.documentClass(data);
+  temp.sheet.render(true);
 }

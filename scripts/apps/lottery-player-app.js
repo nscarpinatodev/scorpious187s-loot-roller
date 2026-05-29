@@ -35,24 +35,33 @@ export class LotteryPlayerApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._tieBreakerMode = tieBreakerMode;
     this._rolled = false;
     this._rollResult = null;
+    this._showDescription = false;
   }
 
   async _prepareContext(options) {
     const timeout = game.settings.get("loot-roller", "lotteryTimeout");
     return {
-      item: this._item,
-      tieBreakerMode: this._tieBreakerMode,
-      rolled: this._rolled,
-      rollResult: this._rollResult,
-      hasTimer: timeout > 0,
-      secondsLeft: _secondsLeft,
-      round: this._item.round,
-      total: this._item.total,
+      item:            this._item,
+      tieBreakerMode:  this._tieBreakerMode,
+      rolled:          this._rolled,
+      rollResult:      this._rollResult,
+      hasTimer:        timeout > 0,
+      secondsLeft:     _secondsLeft,
+      round:           this._item.round,
+      total:           this._item.total,
+      hasDescription:  !!(this._item.itemDescription?.trim()),
+      showDescription: this._showDescription,
     };
   }
 
   _onRender(context, options) {
     super._onRender?.(context, options);
+
+    this.element.querySelector("[data-action=toggle-description]")
+      ?.addEventListener("click", () => {
+        this._showDescription = !this._showDescription;
+        this.render(false);
+      });
 
     const rollBtn = this.element.querySelector("[data-action=roll]");
     const passBtn = this.element.querySelector("[data-action=pass]");

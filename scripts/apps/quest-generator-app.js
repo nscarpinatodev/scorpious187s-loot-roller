@@ -63,6 +63,7 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
         rarity:   item.system?.rarity ?? item.rarity ?? "common",
         stub:     !!item.stub,
         quantity: item.system?.quantity ?? 1,
+        uuid:     item._sourceUuid ?? item.uuid ?? null,
       })),
       searching:        this._searching,
       noResults:        this._noResults,
@@ -115,6 +116,23 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
       });
     });
 
+    this.element.querySelectorAll("[data-action=view-item]").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const idx  = parseInt(btn.dataset.idx);
+        const item = this._items[idx];
+        if (!item) return;
+        const uuid = item._sourceUuid ?? item.uuid;
+        if (uuid) {
+          const doc = await fromUuid(uuid).catch(() => null);
+          if (doc) { doc.sheet.render(true); return; }
+        }
+        const data = item.toObject?.() ?? { ...item };
+        delete data._id;
+        new CONFIG.Item.documentClass(data).sheet.render(true);
+      });
+    });
+
     this.element.querySelector("[data-action=distribute]")
       ?.addEventListener("click", () => this._distribute());
 
@@ -159,7 +177,14 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
     const item = await fromUuid(data.uuid);
     if (!item) return;
     if (item.type === "spell") {
-      ui.notifications.warn(game.i18n.localize("LOOTROLLER.quest.noSpells"));
+      const adapter = LootRoller.getAdapter();
+      const scroll  = await adapter?.createScrollFromSpell?.(item);
+      if (scroll) {
+        this._items.push(scroll);
+        this.render(false);
+      } else {
+        ui.notifications.warn(game.i18n.localize("LOOTROLLER.quest.noSpells"));
+      }
       return;
     }
     const stored = item.toObject();

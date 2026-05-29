@@ -17,8 +17,17 @@
           {{localize "LOOTROLLER.player.itemProgress"}} {{item.round}}/{{item.total}}
         </span>
       {{/if}}
+      {{#if hasDescription}}
+        <button type="button" class="btn-description-toggle" data-action="toggle-description">
+          <i class="fa-solid {{#if showDescription}}fa-chevron-up{{else}}fa-chevron-down{{/if}}"></i>
+          {{localize "LOOTROLLER.player.viewDetails"}}
+        </button>
+      {{/if}}
     </div>
   </div>
+  {{#if showDescription}}
+    <div class="item-description-panel">{{{item.itemDescription}}}</div>
+  {{/if}}
 
   {{#if rolled}}
     <div class="roll-result">

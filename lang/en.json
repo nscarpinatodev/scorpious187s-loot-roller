@@ -42,14 +42,6 @@
         "name": "Include Magic Items",
         "hint": "Include magic items in generated loot. When disabled, only coins, gems, and art objects will be rolled."
       },
-      "includeGems": {
-        "name": "Include Gems",
-        "hint": "Include gem rewards in hoard loot (2014 DMG). Has no effect on 2024 DMG tables."
-      },
-      "includeArtObjects": {
-        "name": "Include Art Objects",
-        "hint": "Include art object rewards in hoard loot (2014 DMG). Has no effect on 2024 DMG tables."
-      },
       "allowDuplicateItems": {
         "name": "Allow Duplicate Items",
         "hint": "When disabled (default), each item name can only appear once per loot roll. Recommended off to avoid receiving 10 Potions of Healing."
@@ -63,12 +55,6 @@
       "lotteryTimeout": {
         "name": "Player Roll Timeout (seconds)",
         "hint": "Seconds players have to roll or pass before the GM can force-resolve the item. Set to 0 to disable the timer."
-      },
-      "dnd5e": {
-        "tableEdition": {
-          "name": "D&D 5e Table Edition",
-          "hint": "Which edition of the DMG treasure tables to use by default. Can be overridden per roll in the generation dialog."
-        }
       },
       "pf2e": {
         "includeUncommon": {
@@ -85,11 +71,7 @@
     "dnd5e": {
       "field": {
         "treasureType": "Treasure Type",
-        "crRange": "CR Range",
-        "creatureCount": "Number of Creatures",
-        "creatureCountHint": "How many individual creatures' loot to roll. Each rolls separately on the individual table.",
-        "tableEdition": "Table Edition",
-        "tableEditionHint": "Override the global table edition for this roll only."
+        "crRange": "CR Range"
       },
       "treasureType": {
         "individual": "Individual Treasure",
@@ -100,11 +82,6 @@
         "5_10": "CR 5–10",
         "11_16": "CR 11–16",
         "17plus": "CR 17+"
-      },
-      "edition": {
-        "default": "Use Module Setting",
-        "2014": "2014 DMG",
-        "2024": "2024 DMG"
       }
     },
 
@@ -139,6 +116,9 @@
       "noItems": "No items were generated.",
       "startButton": "Start Lottery",
       "itemNotInCompendium": "(not found in compendium — will be listed as text)",
+      "unidentifiedItem": "Unidentified Magic Item",
+      "viewItem": "View item details",
+      "toggleMystify": "Toggle mystification (players see as unidentified)",
       "rollTitle": "Item Lottery",
       "playerResponses": "Player Responses",
       "noActivePlayers": "No active players with characters.",
@@ -161,7 +141,8 @@
       "passButton": "Pass",
       "youRolled": "You rolled:",
       "timeLeft": "Time remaining:",
-      "itemProgress": "Item"
+      "itemProgress": "Item",
+      "viewDetails": "View Details"
     },
 
     "chat": {
@@ -271,7 +252,8 @@
       "consumable": "Consumables",
       "loot":       "Loot / Gems",
       "tool":       "Tools",
-      "treasure":   "Treasure"
+      "treasure":   "Treasure",
+      "scroll":     "Spell Scrolls"
     },
 
     "rarity": {

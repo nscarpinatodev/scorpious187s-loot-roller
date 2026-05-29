@@ -198,6 +198,24 @@
   transition: background 0.15s;
 }
 
+/* Clickable item image button */
+.item-img-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: block;
+}
+.item-img-btn:hover img { opacity: 0.8; }
+
+/* Mystified item row */
+.lottery-item.mystified { border-color: rgba(130, 80, 223, 0.25); }
+.dest-mystify.selected  { color: #8250df; border-color: #8250df; background: rgba(130,80,223,0.08); }
+
 .lottery-item:hover {
   background: rgba(0, 0, 0, 0.04);
 }
@@ -375,6 +393,31 @@
   border-radius: 3px;
   object-fit: cover;
   border: 1px solid var(--color-border-light);
+}
+
+/* Player description toggle */
+.btn-description-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  color: var(--color-text-light-7);
+  cursor: pointer;
+  padding: 0;
+  margin-top: 3px;
+}
+.btn-description-toggle:hover { color: var(--color-text-primary); }
+
+.item-description-panel {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  background: rgba(0,0,0,0.03);
+  border: 1px solid var(--color-border-light);
+  border-radius: 4px;
+  line-height: 1.5;
 }
 
 .btn-force-resolve {
@@ -735,6 +778,12 @@
 
 .reward-list-section .lottery-item {
   grid-template-columns: 36px 1fr auto auto;
+}
+
+/* Quest Generator reward list — item img button same size as the grid cell */
+.reward-list-section .item-img-btn {
+  width: 36px;
+  height: 36px;
 }
 
 .item-qty-control {

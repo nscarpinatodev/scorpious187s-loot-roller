@@ -106,7 +106,10 @@
       <div class="item-list">
         {{#each items}}
           <div class="lottery-item {{#if this.stub}}stub{{/if}}">
-            <img class="item-img" src="{{this.img}}" alt="{{this.name}}" />
+            <button type="button" class="item-img-btn" data-action="view-item" data-idx="{{this.idx}}"
+              title="{{localize 'LOOTROLLER.lottery.viewItem'}}">
+              <img class="item-img" src="{{this.img}}" alt="{{this.name}}" />
+            </button>
             <div class="item-info">
               <span class="item-name">{{this.name}}</span>
               {{#if this.rarity}}

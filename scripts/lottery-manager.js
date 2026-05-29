@@ -161,13 +161,22 @@ export class LotteryManager {
     this._responses.clear();
     const item = this._queue[this._currentIndex];
 
+    const isUnidentified   = item.system?.identified === false;
+    const displayName      = isUnidentified
+      ? (item.system?.unidentified?.name || game.i18n.localize("LOOTROLLER.lottery.unidentifiedItem"))
+      : item.name;
+    const displayDesc      = isUnidentified
+      ? (item.system?.unidentified?.description || "")
+      : (item.system?.description?.value || "");
+
     emit(MSG.ITEM_UP_FOR_ROLL, {
-      itemId: item.id ?? item._id,
-      itemName: item.name,
-      itemImg: item.img,
-      itemType: item.type,
-      round: this._currentIndex + 1,
-      total: this._queue.length,
+      itemId:          item.id ?? item._id,
+      itemName:        displayName,
+      itemImg:         item.img,
+      itemType:        item.type,
+      itemDescription: displayDesc,
+      round:           this._currentIndex + 1,
+      total:           this._queue.length,
     });
 
     game.modules.get("loot-roller").lotteryGMApp?.refresh();
