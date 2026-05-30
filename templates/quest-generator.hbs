@@ -9,17 +9,12 @@
   <div class="generator-filters">
 
     {{!-- Rarity OR Level Range (system-dependent) --}}
-    {{#if levelRangeDef}}
-      {{!-- PF2e: level range selector replaces rarity buttons --}}
+    {{#if (lootrollerUsesPartyLevel)}}
+      {{!-- PF2e: party level input replaces rarity buttons --}}
       <div class="filter-group">
-        <label class="filter-label">{{localize "LOOTROLLER.quest.levelRange"}}</label>
-        <div class="level-range-inputs">
-          <span class="level-range-label">{{localize "LOOTROLLER.levelRange.low"}}</span>
-          <input type="number" class="level-range-min" value="{{levelRange.[0]}}"
-            min="{{levelRangeDef.min}}" max="{{levelRangeDef.max}}" />
-          <span class="level-range-sep">—</span>
-          <span class="level-range-label">{{localize "LOOTROLLER.levelRange.high"}}</span>
-          <input type="number" class="level-range-max" value="{{levelRange.[1]}}"
+        <label class="filter-label">{{localize "LOOTROLLER.pf2e.field.partyLevel"}}</label>
+        <div class="party-level-input">
+          <input type="number" class="quest-party-level" value="{{partyLevel}}"
             min="{{levelRangeDef.min}}" max="{{levelRangeDef.max}}" />
         </div>
       </div>

@@ -762,39 +762,25 @@
 /* Item type buttons when selected — match the "Common" rarity button scheme */
 .type-btn.selected { color: #e0e0e0; border-color: #e0e0e0; background: rgba(224,224,224,0.12); font-weight: bold; }
 
-/* Level range selector (PF2e, replaces rarity buttons) */
-.level-range-inputs {
+/* Party level input (PF2e, replaces rarity buttons in quest/shop generators) */
+.party-level-input {
   display: flex;
   align-items: center;
-  gap: 6px;
 }
 
-.level-range-label {
-  font-size: 11px;
-  color: var(--color-text-light-7);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.level-range-sep {
-  font-size: 12px;
-  color: var(--color-text-light-7);
-}
-
-.level-range-min,
-.level-range-max {
-  width: 52px;
+.quest-party-level {
+  width: 64px;
   text-align: center;
-  padding: 3px 6px;
-  font-size: 13px;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: bold;
   border: 1px solid var(--color-border-light);
-  border-radius: 3px;
+  border-radius: 4px;
   background: transparent;
   color: var(--color-text-primary);
 }
 
-.level-range-min:focus,
-.level-range-max:focus {
+.quest-party-level:focus {
   outline: none;
   border-color: var(--color-border-highlight);
 }

@@ -113,6 +113,16 @@ Hooks.once("init", () => {
       .replace(/\s+/g, "-")
       .toLowerCase()
   );
+  // Returns true when the active system uses party-level filtering instead of rarity buttons.
+  // Checked at render time so it always reflects the current system.
+  Handlebars.registerHelper("lootrollerUsesPartyLevel", () => {
+    if (typeof game === "undefined") return false;
+    // Primary: ask the adapter (extensible for future systems)
+    const adapter = LootRoller.getAdapter?.();
+    if (adapter?.getItemLevelRange) return true;
+    // Fallback: hardcoded system check so PF2e works even if the adapter JS is cached
+    return game.system?.id === "pf2e";
+  });
 });
 
 // ── ready ─────────────────────────────────────────────────────────────────────

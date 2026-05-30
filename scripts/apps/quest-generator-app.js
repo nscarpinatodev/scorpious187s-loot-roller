@@ -30,7 +30,7 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
     this._onConfirm  = onConfirm ?? null;  // optional callback from Quest Tracker integration
     this._rarities   = ["uncommon"];
     this._types      = [];            // empty = all types
-    this._levelRange = null;          // [minLevel, maxLevel] for PF2e; null = use rarity
+    this._partyLevel = null;          // party level for PF2e; null = use rarity
     this._current    = null;          // current Item document or stub
     this._items      = [];            // accumulated reward list
     this._searching  = false;
@@ -44,16 +44,17 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
     const itemTypes     = adapter?.getItemTypes?.()      ?? [];
     const levelRangeDef = adapter?.getItemLevelRange?.() ?? null;
 
-    // Seed default level range from adapter on first load
-    if (levelRangeDef && !this._levelRange) {
-      this._levelRange = [levelRangeDef.defaultMin, levelRangeDef.defaultMax];
+    // Seed default party level from adapter on first load
+    if (levelRangeDef && this._partyLevel === null) {
+      this._partyLevel = levelRangeDef.default;
     }
 
     return {
       rarities,
       itemTypes,
+      usesPartyLevel:   !!levelRangeDef,
       levelRangeDef,
-      levelRange:       this._levelRange,
+      partyLevel:       this._partyLevel,
       selectedRarities: this._rarities,
       selectedTypes:    this._types,
       current: this._current
@@ -113,16 +114,9 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
       });
     });
 
-    // Level range inputs (PF2e — shown instead of rarity buttons)
-    this.element.querySelector(".level-range-min")?.addEventListener("change", (e) => {
-      const lo = Math.max(1, parseInt(e.target.value) || 1);
-      const hi = Math.max(lo, this._levelRange?.[1] ?? lo);
-      this._levelRange = [lo, hi];
-    });
-    this.element.querySelector(".level-range-max")?.addEventListener("change", (e) => {
-      const hi = Math.max(1, parseInt(e.target.value) || 1);
-      const lo = Math.min(hi, this._levelRange?.[0] ?? hi);
-      this._levelRange = [lo, hi];
+    // Party level input (PF2e — shown instead of rarity buttons)
+    this.element.querySelector(".quest-party-level")?.addEventListener("change", (e) => {
+      this._partyLevel = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
     });
 
     this.element.querySelector("[data-action=roll-item]")
@@ -248,9 +242,9 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
     try {
       const types        = this._types.length ? this._types : null;
       const excludeNames = new Set(this._items.map((i) => i.name).filter(Boolean));
-      const findParams   = { types, limit: 1, excludeNames };
-      if (this._levelRange) {
-        findParams.levelRange = this._levelRange;
+      const findParams = { types, limit: 1, excludeNames };
+      if (this._partyLevel !== null) {
+        findParams.partyLevel = this._partyLevel;
       } else {
         findParams.rarities = this._rarities;
       }

@@ -392,14 +392,29 @@ export class PF2eAdapter {
   }
 
   /**
-   * Describe the item-level filter this system uses in place of rarity.
+   * Describe the level-based filter this system uses in place of rarity.
    * Returning a non-null value causes the quest/shop generators to show a
-   * level-range selector instead of rarity buttons.
+   * party-level input instead of rarity buttons.
    *
-   * @returns {{ min: number, max: number, defaultMin: number, defaultMax: number }}
+   * mode "partyLevel": a single party-level number (1–20); the adapter converts
+   * it to an appropriate item-level window internally.
+   *
+   * @returns {{ mode: "partyLevel", min: number, max: number, default: number }}
    */
   static getItemLevelRange() {
-    return { min: 1, max: 25, defaultMin: 1, defaultMax: 8 };
+    return { mode: "partyLevel", min: 1, max: 20, default: 5 };
+  }
+
+  /**
+   * Convert a party level to the item-level window used for compendium search.
+   * Mirrors the spread in TREASURE_BY_LEVEL: items are at partyLevel–1 through
+   * partyLevel+2, clamped to [1, 25].
+   *
+   * @param {number} partyLevel
+   * @returns {[number, number]}
+   */
+  static partyLevelToItemRange(partyLevel) {
+    return [Math.max(1, partyLevel - 1), Math.min(25, partyLevel + 2)];
   }
 
   /**
@@ -407,14 +422,14 @@ export class PF2eAdapter {
    * Uses the PF2e-specific pool so rarity is read from system.traits.rarity.
    *
    * @param {{
-   *   rarities?:    string[],
-   *   types?:       string[],
-   *   limit?:       number,
+   *   rarities?:     string[],
+   *   types?:        string[],
+   *   limit?:        number,
    *   excludeNames?: Set<string>,
-   *   levelRange?:  [number, number]   PF2e: [minLevel, maxLevel] replaces rarities
+   *   partyLevel?:   number      PF2e: converted to item-level window, replaces rarities
    * }} params
    */
-  static async findItems({ rarities, types, limit = 1, excludeNames, levelRange } = {}) {
+  static async findItems({ rarities, types, limit = 1, excludeNames, partyLevel } = {}) {
     const packs = PF2eAdapter.getActivePacks();
     const pool  = await _buildPf2ePool(packs);
 
@@ -425,9 +440,8 @@ export class PF2eAdapter {
     if (excluded.size) candidates = candidates.filter((e) => !excluded.has(e.name));
     if (types?.length) candidates = candidates.filter((e) => types.includes(e.type));
 
-    if (levelRange) {
-      // Level-range mode: filter by item level (PF2e primary filter)
-      const [minL, maxL] = levelRange;
+    if (partyLevel !== undefined) {
+      const [minL, maxL] = PF2eAdapter.partyLevelToItemRange(partyLevel);
       candidates = candidates.filter((e) => e.level >= minL && e.level <= maxL);
     } else if (rarityNorms?.length) {
       candidates = candidates.filter((e) => rarityNorms.includes(e.rarity));
