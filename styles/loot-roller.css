@@ -1619,6 +1619,7 @@
   --lr-bg-primary:     var(--sqt-bg-primary,     var(--scs-bg-primary));
   --lr-bg-secondary:   var(--sqt-bg-secondary,   var(--scs-bg-secondary));
   --lr-bg-item:        var(--sqt-bg-item,        var(--scs-bg-item));
+  --lr-bg-header:      var(--sqt-bg-header,      var(--scs-bg-header));
   --lr-text-primary:   var(--sqt-text-primary,   var(--scs-text-primary));
   --lr-text-secondary: var(--sqt-text-secondary, var(--scs-text-secondary));
   --lr-accent:         var(--sqt-accent,         var(--scs-accent));
@@ -1642,8 +1643,8 @@
   color: var(--lr-text-primary);
 }
 
-.loot-roller[data-sqt-theme] :is(.item-detail-type, .item-detail-stat .stat-label, .hint, .notes),
-.loot-roller[data-scs-theme] :is(.item-detail-type, .item-detail-stat .stat-label, .hint, .notes) {
+.loot-roller[data-sqt-theme] :is(.item-detail-type, .item-detail-stat .stat-label, .hint, .notes, .hub-btn-desc),
+.loot-roller[data-scs-theme] :is(.item-detail-type, .item-detail-stat .stat-label, .hint, .notes, .hub-btn-desc) {
   color: var(--lr-text-secondary);
 }
 
@@ -1668,18 +1669,27 @@
   border-color: var(--lr-border) !important;
 }
 
-/* Primary action buttons take the accent; secondary buttons a muted item bg. */
-.loot-roller[data-sqt-theme] :is(button[type=submit], .btn-roll, .btn-primary, .hub-btn),
-.loot-roller[data-scs-theme] :is(button[type=submit], .btn-roll, .btn-primary, .hub-btn) {
-  background: var(--lr-accent) !important;
-  color: var(--lr-btn-text) !important;
-  border-color: var(--lr-accent) !important;
+/* Buttons use the darkest surface (bg-header) as their background — it is the
+   one palette slot never reused as a text colour in any theme, so the bright
+   text always reads — with an accent border + accent icon for definition.
+   (Filling buttons with the accent itself made the label, which inherits the
+   near-identical text-primary in neon themes, impossible to read.) */
+.loot-roller[data-sqt-theme] :is(button[type=submit], .btn-roll, .btn-pass, .btn-primary, .hub-btn),
+.loot-roller[data-scs-theme] :is(button[type=submit], .btn-roll, .btn-pass, .btn-primary, .hub-btn) {
+  background: var(--lr-bg-header) !important;
+  color: var(--lr-text-primary) !important;
+  border: 1px solid var(--lr-accent) !important;
 }
 
-.loot-roller[data-sqt-theme] .btn-pass,
-.loot-roller[data-scs-theme] .btn-pass {
+.loot-roller[data-sqt-theme] :is(button[type=submit], .btn-roll, .btn-primary, .hub-btn):hover:not(:disabled),
+.loot-roller[data-scs-theme] :is(button[type=submit], .btn-roll, .btn-primary, .hub-btn):hover:not(:disabled) {
   background: var(--lr-bg-item) !important;
-  color: var(--lr-text-primary) !important;
+}
+
+/* Hub menu icon picks up the accent for a touch of theme colour. */
+.loot-roller[data-sqt-theme] .hub-btn-icon,
+.loot-roller[data-scs-theme] .hub-btn-icon {
+  color: var(--lr-accent);
 }
 
 .loot-roller[data-sqt-theme] .roll-result strong,

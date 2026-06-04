@@ -56,7 +56,9 @@
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('scorpious187s-customizable-shop/lang/en.json','utf8'\\)\\); console.log\\('Shop en.json OK'\\)\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('scorpious187s-loot-roller/lang/en.json','utf8'\\)\\); console.log\\('Loot Roller en.json OK'\\)\")",
       "Bash(sed -n '95,140p' templates/shop-generator.hbs)",
-      "Bash(sed -n '140,165p' templates/quest-generator.hbs)"
+      "Bash(sed -n '140,165p' templates/quest-generator.hbs)",
+      "Bash(node -e ' *)",
+      "Bash(awk '/id: .scifi-terminal./{f=1} f{print} /\\\\}/{if\\(f\\)c++; if\\(c>3\\)exit}' scripts/data/theme-presets.js)"
     ],
     "additionalDirectories": [
       "c:\\Users\\djsco\\OneDrive\\Documents\\GitHub\\scorpious187s-customizable-shop\\scripts",
