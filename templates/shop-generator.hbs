@@ -142,6 +142,12 @@
           <i class="fa-solid fa-store"></i>
           {{localize "LOOTROLLER.shop.createShop"}}
         </button>
+        {{#if canRestock}}
+          <button type="button" class="btn-distribute btn-restock" data-action="restock-shop">
+            <i class="fa-solid fa-boxes-packing"></i>
+            {{localize "LOOTROLLER.shop.restock"}}
+          </button>
+        {{/if}}
       </div>
     </div>
   {{/if}}

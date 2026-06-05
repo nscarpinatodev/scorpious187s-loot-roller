@@ -12,6 +12,11 @@ import { bindRowClicks } from "../row-click.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+// Customizable Shop integration — shop vendors are actors flagged isShop by it.
+const CS_ID        = "scorpious187s-customizable-shop";
+const CS_FLAG_SHOP = "isShop";
+const CS_FLAG_NAME = "shopName";
+
 export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "shop-generator-app",
@@ -75,6 +80,7 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       generating: this._generating,
       hasItems:   this._items.length > 0,
       hasAdapter: !!adapter,
+      canRestock: !!game.modules.get(CS_ID)?.active,
     };
   }
 
@@ -150,6 +156,9 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
     this.element.querySelector("[data-action=create-shop]")
       ?.addEventListener("click", () => this._createShop());
+
+    this.element.querySelector("[data-action=restock-shop]")
+      ?.addEventListener("click", () => this._restockShop());
 
     this.element.querySelector("[data-action=clear-inventory]")
       ?.addEventListener("click", () => {
@@ -275,6 +284,146 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     ui.notifications.info(game.i18n.format("LOOTROLLER.shop.created", { name, count: itemData.length }));
     actor.sheet?.render(true);
     this.close();
+  }
+
+  /**
+   * Restock an existing Customizable Shop vendor — append the generated items to
+   * the chosen vendor actor, stacking quantity when an item it already carries is
+   * generated again. Leaves the generator open so several vendors can be restocked.
+   */
+  async _restockShop() {
+    if (!this._items.length) {
+      ui.notifications.warn(game.i18n.localize("LOOTROLLER.shop.noItems"));
+      return;
+    }
+
+    const vendors = ShopGeneratorApp._getShopVendors();
+    if (!vendors.length) {
+      ui.notifications.warn(game.i18n.localize("LOOTROLLER.shop.restockNoVendors"));
+      return;
+    }
+
+    const actorId = await this._promptVendor(vendors);
+    if (!actorId) return;
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+
+    let result;
+    try {
+      result = await ShopGeneratorApp._addItemsToActor(actor, this._items);
+    } catch (err) {
+      console.error("LootRoller | Restock failed:", err);
+      ui.notifications.error(game.i18n.localize("LOOTROLLER.shop.restockFailed"));
+      return;
+    }
+
+    ui.notifications.info(game.i18n.format("LOOTROLLER.shop.restocked", {
+      name:    actor.getFlag(CS_ID, CS_FLAG_NAME) || actor.name,
+      added:   result.created,
+      stacked: result.restocked,
+    }));
+  }
+
+  /** Owned actors flagged as shops by the Customizable Shop module, name-sorted. */
+  static _getShopVendors() {
+    if (!game.modules.get(CS_ID)?.active) return [];
+    return game.actors
+      .filter((a) => a.isOwner && a.getFlag(CS_ID, CS_FLAG_SHOP))
+      .map((a) => ({ id: a.id, label: a.getFlag(CS_ID, CS_FLAG_NAME) || a.name }))
+      .sort((x, y) => x.label.localeCompare(y.label));
+  }
+
+  /** Prompt the GM to choose a vendor; resolves to an actor id or null. */
+  async _promptVendor(vendors) {
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const options = vendors.map((v) => `<option value="${v.id}">${esc(v.label)}</option>`).join("");
+    return Dialog.prompt({
+      title: game.i18n.localize("LOOTROLLER.shop.restockTitle"),
+      content: `<div class="form-group">
+        <label>${game.i18n.localize("LOOTROLLER.shop.restockSelectLabel")}</label>
+        <select name="vendor" style="width:100%">${options}</select>
+      </div>`,
+      label: game.i18n.localize("LOOTROLLER.shop.restockButton"),
+      callback: (html) => html.find("[name=vendor]").val(),
+      options: { width: 360 },
+      rejectClose: false,
+    }).catch(() => null);
+  }
+
+  /**
+   * Append generated items to an actor, stacking onto matching existing items.
+   * Matches by compendium source first, then by name + type.
+   * @returns {Promise<{created:number, restocked:number}>}
+   */
+  static async _addItemsToActor(actor, items) {
+    const existing = actor.items.contents;
+    const matchFor = (data) => {
+      const sk = ShopGeneratorApp._sourceKey(data);
+      if (sk) {
+        const bySource = existing.find((e) => ShopGeneratorApp._sourceKey(e) === sk);
+        if (bySource) return bySource;
+      }
+      const nk = ShopGeneratorApp._nameKey(data);
+      return existing.find((e) => ShopGeneratorApp._nameKey(e) === nk);
+    };
+
+    const toCreate = [];
+    const newQty   = new Map(); // existing item id → accumulated quantity
+
+    for (const item of items) {
+      const data = item?.toObject ? item.toObject() : foundry.utils.deepClone(item);
+      delete data._id;
+      // Record the source uuid so future restocks stack precisely.
+      const srcUuid = item?._sourceUuid ?? item?.uuid ?? null;
+      if (srcUuid && !foundry.utils.getProperty(data, "flags.core.sourceId")) {
+        foundry.utils.setProperty(data, "flags.core.sourceId", srcUuid);
+      }
+
+      const addQty = ShopGeneratorApp._getQty(data);
+      const match  = matchFor(data);
+      if (match) {
+        const base = newQty.has(match.id) ? newQty.get(match.id) : ShopGeneratorApp._getQty(match);
+        newQty.set(match.id, base + addQty);
+      } else {
+        toCreate.push(data);
+      }
+    }
+
+    if (newQty.size) {
+      const updates = [...newQty.entries()].map(([id, qty]) => {
+        const obj = { _id: id };
+        foundry.utils.setProperty(obj, ShopGeneratorApp._qtyPath(actor.items.get(id)), qty);
+        return obj;
+      });
+      await actor.updateEmbeddedDocuments("Item", updates);
+    }
+    if (toCreate.length) await actor.createEmbeddedDocuments("Item", toCreate);
+
+    return { created: toCreate.length, restocked: newQty.size };
+  }
+
+  /** Stable identity for stacking: compendium source, falling back to a uuid. */
+  static _sourceKey(it) {
+    return foundry.utils.getProperty(it, "_stats.compendiumSource")
+      ?? foundry.utils.getProperty(it, "flags.core.sourceId")
+      ?? it?._sourceUuid ?? it?.uuid ?? null;
+  }
+
+  /** Fallback identity: lower-cased name + type. */
+  static _nameKey(it) {
+    return `${(it?.name ?? "").toLowerCase()}::${it?.type ?? ""}`;
+  }
+
+  /** System-aware quantity path (number vs {value}). */
+  static _qtyPath(it) {
+    const q = foundry.utils.getProperty(it, "system.quantity");
+    return (typeof q === "object" && q !== null) ? "system.quantity.value" : "system.quantity";
+  }
+
+  /** Current quantity of an item/data, defaulting to 1. */
+  static _getQty(it) {
+    return Number(foundry.utils.getProperty(it, ShopGeneratorApp._qtyPath(it))) || 1;
   }
 
   async _promptListName(defaultValue = "") {

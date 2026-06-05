@@ -273,6 +273,13 @@
       "createShop": "Create Shop Actor",
       "created": "Created \"{name}\" with {count} items.",
       "createFailed": "Failed to create shop actor. Check the console for details.",
+      "restock": "Restock Vendor",
+      "restockTitle": "Restock Existing Shop",
+      "restockSelectLabel": "Choose a shop vendor to add this inventory to:",
+      "restockButton": "Restock",
+      "restockNoVendors": "No Customizable Shop vendors found. Flag an NPC as a shop in the Customizable Shop module first.",
+      "restocked": "Restocked \"{name}\": {added} new, {stacked} restocked.",
+      "restockFailed": "Failed to restock vendor. Check the console for details.",
       "saveForLater": "Save for Later",
       "noItems": "Generate an inventory first."
     },

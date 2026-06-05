@@ -1209,6 +1209,9 @@
 
 .loot-roller .btn-distribute:hover { filter: brightness(1.1); }
 
+/* Restock-existing-vendor button: distinct from the green Create Shop button. */
+.loot-roller .btn-restock { background: #3a6ea5; }
+
 .loot-roller .btn-save-list {
   padding: 8px 12px;
   background: transparent;
