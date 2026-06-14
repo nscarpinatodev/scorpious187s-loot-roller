@@ -61,7 +61,17 @@
       "Bash(awk '/id: .scifi-terminal./{f=1} f{print} /\\\\}/{if\\(f\\)c++; if\\(c>3\\)exit}' scripts/data/theme-presets.js)",
       "Bash(node -e \"const j=require\\('./lang/en.json'\\); console.log\\(JSON.stringify\\(j.LOOTROLLER.shop,null,1\\)\\)\")",
       "Bash(node --check --input-type=module)",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/en.json','utf8'\\)\\); console.log\\('en.json OK'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/en.json','utf8'\\)\\); console.log\\('en.json OK'\\)\")",
+      "Bash(gh auth *)",
+      "Bash(git fetch *)",
+      "Bash(git rev-list *)",
+      "Bash(curl -sL \"https://github.com/nscarpinatodev/loot-roller/releases/latest/download/module.json\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -L \"https://github.com/nscarpinatodev/loot-roller/releases/download/v1.1.0/scorpious187s-loot-roller.zip\")",
+      "Bash(python -c \"import yaml,sys; yaml.safe_load\\(open\\('.github/workflows/release.yml'\\)\\); print\\('YAML OK'\\)\")",
+      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/release.yml'\\)\\); print\\('YAML OK'\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh pr create --title 'Add tag-triggered release workflow' --body ' *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\djsco\\OneDrive\\Documents\\GitHub\\scorpious187s-customizable-shop\\scripts",
