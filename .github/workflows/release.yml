@@ -1,0 +1,73 @@
+name: Release
+
+# Publish a Foundry-ready release when a version tag is pushed.
+#
+# Bump-commit flow — module.json's committed version is the source of truth:
+#   1. Edit module.json -> "version": "1.2.0"
+#   2. git commit -am "v1.2.0"
+#   3. git tag -a v1.2.0 -m "release notes go in the tag message"
+#   4. git push && git push origin v1.2.0
+#
+# The tag MUST match module.json's version (the workflow fails otherwise). The
+# annotated tag's message becomes the release body.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      MODULE_ZIP: scorpious187s-loot-roller.zip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need the annotated tag object for release notes
+
+      - name: Verify tag matches module.json version, set download URL
+        run: |
+          node -e '
+            const fs = require("fs");
+            const tag  = process.env.GITHUB_REF_NAME;     // e.g. v1.2.0
+            const repo = process.env.GITHUB_REPOSITORY;   // owner/name
+            const zip  = process.env.MODULE_ZIP;
+            const m = JSON.parse(fs.readFileSync("module.json", "utf8"));
+            const expected = "v" + m.version;
+            if (tag !== expected) {
+              console.error(`::error::Tag ${tag} does not match module.json version ${m.version}. Bump module.json to match (expected tag ${expected}) and commit before tagging.`);
+              process.exit(1);
+            }
+            // Version stays as committed; only normalise the release pointers.
+            m.manifest = `https://github.com/${repo}/releases/latest/download/module.json`;
+            m.download = `https://github.com/${repo}/releases/download/${tag}/${zip}`;
+            fs.writeFileSync("module.json", JSON.stringify(m, null, 2) + "\n");
+            console.log(`Releasing ${tag} (module.json version ${m.version})`);
+          '
+
+      - name: Build package (module files at zip root)
+        run: |
+          zip -r "$MODULE_ZIP" \
+            module.json scripts styles templates lang data README.md LICENSE
+
+      - name: Release notes from tag annotation
+        run: |
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "Release $GITHUB_REF_NAME" > RELEASE_NOTES.md
+          fi
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "$MODULE_ZIP" module.json \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file RELEASE_NOTES.md \
+            --latest
