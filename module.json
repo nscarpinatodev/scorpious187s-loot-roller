@@ -2,7 +2,7 @@
   "id": "scorpious187s-loot-roller",
   "title": "Scorpious187's Loot Roller",
   "description": "A system-agnostic loot generator with a real-time player lottery/roll-off system. Supports D&D 5e, Pathfinder 2e, Starfinder 2e, and Fallout 2d20 out of the box. Items are pulled from system compendiums. Additional systems can register via the plugin API.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "compatibility": {
     "minimum": "12",
     "verified": "14"
@@ -10,7 +10,7 @@
   "authors": [
     {
       "name": "Scorpious187",
-      "url": "https://github.com/nscarpinatodev/loot-roller"
+      "url": "https://github.com/nscarpinatodev/scorpious187s-loot-roller"
     }
   ],
   "socket": true,
@@ -27,10 +27,10 @@
       "path": "lang/en.json"
     }
   ],
-  "url": "https://github.com/nscarpinatodev/loot-roller",
-  "readme": "https://github.com/nscarpinatodev/loot-roller#readme",
-  "bugs": "https://github.com/nscarpinatodev/loot-roller/issues",
+  "url": "https://github.com/nscarpinatodev/scorpious187s-loot-roller",
+  "readme": "https://github.com/nscarpinatodev/scorpious187s-loot-roller#readme",
+  "bugs": "https://github.com/nscarpinatodev/scorpious187s-loot-roller/issues",
   "license": "MIT",
-  "manifest": "https://github.com/nscarpinatodev/loot-roller/releases/latest/download/module.json",
-  "download": "https://github.com/nscarpinatodev/loot-roller/releases/download/v1.1.0/scorpious187s-loot-roller.zip"
+  "manifest": "https://github.com/nscarpinatodev/scorpious187s-loot-roller/releases/latest/download/module.json",
+  "download": "https://github.com/nscarpinatodev/scorpious187s-loot-roller/releases/download/v1.1.1/scorpious187s-loot-roller.zip"
 }
