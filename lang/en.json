@@ -270,6 +270,7 @@
       "addMore": "Add More Items",
       "inventory": "Inventory",
       "clearInventory": "Clear All",
+      "dragDropHint": "Drag items from the Compendium here, or generate above",
       "createShop": "Create Shop Actor",
       "created": "Created \"{name}\" with {count} items.",
       "createFailed": "Failed to create shop actor. Check the console for details.",

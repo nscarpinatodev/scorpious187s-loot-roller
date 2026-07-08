@@ -84,8 +84,24 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
   }
 
+  /**
+   * Re-render without losing the window's scroll position. AppV2 re-renders
+   * replace the part DOM, which resets .window-content to the top — jarring
+   * when removing one item from a long inventory list.
+   */
+  _renderKeepScroll() {
+    this._savedScrollTop = this.element?.querySelector(".window-content")?.scrollTop ?? null;
+    this.render(false);
+  }
+
   _onRender(context, options) {
     super._onRender?.(context, options);
+
+    if (this._savedScrollTop != null) {
+      const scroller = this.element.querySelector(".window-content");
+      if (scroller) scroller.scrollTop = this._savedScrollTop;
+      this._savedScrollTop = null;
+    }
 
     const nameInput = this.element.querySelector("[name=shopName]");
     if (nameInput) {
@@ -107,7 +123,7 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
         } else {
           this._rarities.push(rarity);
         }
-        this.render(false);
+        this._renderKeepScroll();
       });
     });
 
@@ -122,7 +138,7 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
         } else {
           this._types.push(type);
         }
-        this.render(false);
+        this._renderKeepScroll();
       });
     });
 
@@ -134,7 +150,7 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       btn.addEventListener("click", () => {
         const idx = parseInt(btn.dataset.idx);
         this._items.splice(idx, 1);
-        this.render(false);
+        this._renderKeepScroll();
       });
     });
 
@@ -163,9 +179,37 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.element.querySelector("[data-action=clear-inventory]")
       ?.addEventListener("click", () => {
         this._items = [];
-        this.render(false);
+        this._renderKeepScroll();
       });
 
+    // Drag-and-drop from the Compendium / sidebar onto the inventory
+    const dropZone = this.element.querySelector(".reward-list-drop-zone");
+    if (dropZone) {
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+      dropZone.addEventListener("dragleave", (e) => {
+        if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove("drag-over");
+      });
+      dropZone.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        await this._onDropItem(e);
+      });
+    }
+  }
+
+  async _onDropItem(event) {
+    const data = TextEditor.getDragEventData(event);
+    if (data.type !== "Item") return;
+    const item = await fromUuid(data.uuid);
+    if (!item) return;
+    const stored = item.toObject();
+    stored.uuid        = item.uuid;
+    stored._sourceUuid = item.uuid;
+    this._items.push(stored);
+    this._renderKeepScroll();
   }
 
   /**
@@ -217,7 +261,7 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!adapter) return;
 
     this._generating = true;
-    this.render(false);
+    this._renderKeepScroll();
 
     try {
       const types      = this._types.length ? this._types : null;
@@ -233,7 +277,7 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       console.error("LootRoller | Shop generation error:", err);
     } finally {
       this._generating = false;
-      this.render(false);
+      this._renderKeepScroll();
     }
   }
 

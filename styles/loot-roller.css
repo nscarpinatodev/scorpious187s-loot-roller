@@ -13,6 +13,19 @@
 
 /* ── Shared ─────────────────────────────────────────────── */
 
+/* Muted/secondary text that adapts to the active Foundry UI theme.
+   Foundry's --color-text-light-* scale is near-white and unreadable on
+   light window backgrounds, so instead we dim whatever text color the
+   theme actually resolves to. */
+.loot-roller,
+.loot-roller-chat,
+.loot-roller-control,
+.shop-config,
+.lottery-setup-content,
+.lottery-player-content {
+  --lr-text-muted: color-mix(in srgb, var(--color-text-primary, #b5b3a4) 62%, transparent);
+}
+
 .loot-roller .window-content {
   padding: 0;
   overflow-y: auto;
@@ -45,7 +58,7 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -77,7 +90,7 @@
 .loot-roller-generate .form-group .hint {
   grid-column: 1 / -1;
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   margin: 0;
 }
 
@@ -152,7 +165,7 @@
 .loot-roller .no-adapter {
   text-align: center;
   padding: 24px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 /* ── Lottery Setup ───────────────────────────────────────── */
@@ -168,7 +181,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -199,7 +212,7 @@
   border: 1px solid var(--color-border-light);
   background: transparent;
   font-size: 12px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
 }
@@ -236,7 +249,7 @@
 
 .loot-roller .stash-clear {
   margin-left: auto;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   cursor: pointer;
 }
 
@@ -298,7 +311,7 @@
 
 .loot-roller .lottery-item.stub .item-name {
   font-style: italic;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .lottery-item .item-img {
@@ -333,7 +346,7 @@
 
 .loot-roller .item-stub-note {
   font-size: 10px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .item-destination {
@@ -351,7 +364,7 @@
   border: 1px solid var(--color-border-light);
   background: transparent;
   font-size: 12px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
 }
@@ -406,7 +419,7 @@
 .lottery-gm-content .lottery-progress {
   text-align: center;
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -416,7 +429,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .player-status {
@@ -432,7 +445,7 @@
 
 .loot-roller .player-status-waiting { opacity: 0.7; }
 .loot-roller .player-status-rolled  { background: rgba(74,122,74,0.1); border-color: #4a7a4a; }
-.loot-roller .player-status-passed  { color: var(--color-text-light-7); }
+.loot-roller .player-status-passed  { color: var(--lr-text-muted); }
 
 .loot-roller .player-name { font-weight: bold; flex: 1; }
 
@@ -446,7 +459,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .upcoming-item {
@@ -455,7 +468,7 @@
   gap: 8px;
   padding: 3px 0;
   font-size: 12px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .upcoming-item img {
@@ -474,7 +487,7 @@
   background: transparent;
   border: none;
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   cursor: pointer;
   padding: 0;
   margin-top: 3px;
@@ -568,7 +581,7 @@
 
 .loot-roller .item-card .item-progress {
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .action-buttons {
@@ -619,7 +632,7 @@
 .loot-roller .countdown {
   text-align: center;
   font-size: 12px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -655,12 +668,12 @@
 }
 
 .loot-roller-chat .winner-item { font-weight: bold; }
-.loot-roller-chat .winner-arrow { color: var(--color-text-light-7); }
+.loot-roller-chat .winner-arrow { color: var(--lr-text-muted); }
 .loot-roller-chat .winner-name  { color: #4a7a4a; }
 
 .loot-roller-chat .dist-mode {
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 /* ── Injected toolbar button (renderSceneControls fallback) ─ */
@@ -696,7 +709,7 @@
 
 .loot-hub-content .hub-system-badge {
   font-size: 12px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   display: flex;
@@ -712,10 +725,14 @@
 }
 
 .loot-hub-content .hub-btn {
-  display: flex;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  grid-template-rows: auto auto;
   align-items: center;
-  padding: 14px 16px;
-  gap: 0;
+  padding: 16px 18px;
+  column-gap: 12px;
+  row-gap: 3px;
+  text-align: left;
   background: transparent;
   border: 1px solid var(--color-border-light);
   border-radius: 8px;
@@ -737,25 +754,27 @@
 }
 
 .loot-hub-content .hub-btn-icon {
-  flex: 0 0 40px;
-  font-size: 24px;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  font-size: 30px;
   text-align: center;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-hub-content .hub-btn-title {
-  flex: 0 0 160px;
-  padding-right: 16px;
+  grid-column: 2;
+  grid-row: 1;
   font-weight: bold;
-  font-size: 15px;
-  white-space: nowrap;
+  font-size: 18px;
+  line-height: 1.2;
 }
 
 .loot-hub-content .hub-btn-desc {
-  flex: 1;
-  font-size: 13px;
-  color: var(--color-text-light-7);
-  line-height: 1.4;
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 14px;
+  color: var(--lr-text-muted);
+  line-height: 1.35;
 }
 
 /* ── Quest Generator / Shop Generator shared ─────────────── */
@@ -789,7 +808,7 @@
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .hint-inline {
@@ -810,7 +829,7 @@
   border: 1px solid var(--color-border-light);
   background: transparent;
   font-size: 12px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
@@ -910,7 +929,7 @@
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .level-range-readout strong {
@@ -1035,7 +1054,7 @@
 
 .loot-roller .item-qty-x {
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .item-qty-input {
@@ -1060,7 +1079,7 @@
 .loot-roller .reward-drop-hint {
   text-align: center;
   padding: 16px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   font-size: 12px;
   display: flex;
   align-items: center;
@@ -1139,7 +1158,7 @@
 .loot-roller .btn-view-current {
   padding: 5px 10px;
   background: transparent;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   border: 1px solid var(--color-border-light);
   border-radius: 4px;
   cursor: pointer;
@@ -1160,7 +1179,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1178,7 +1197,7 @@
   justify-content: center;
   border: none;
   background: transparent;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   cursor: pointer;
   border-radius: 3px;
   flex-shrink: 0;
@@ -1240,7 +1259,7 @@
   font-size: 12px;
   font-weight: bold;
   text-align: right;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1265,7 +1284,7 @@
 
 .compendium-settings-content .comp-hint {
   margin: 0;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1318,7 +1337,7 @@
 
 .compendium-settings-content .pack-meta {
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .compendium-settings-content .default-badge {
@@ -1387,7 +1406,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   font-size: 13px;
 }
 
@@ -1440,7 +1459,7 @@
   gap: 10px;
   margin-top: 2px;
   font-size: 11px;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .saved-lists-content .saved-list-actions {
@@ -1475,7 +1494,7 @@
   background: transparent;
   border-radius: 3px;
   cursor: pointer;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   transition: color 0.15s, border-color 0.15s;
 }
 
@@ -1533,7 +1552,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .item-detail.mystified .item-detail-name {
@@ -1558,7 +1577,7 @@
 }
 
 .loot-roller .item-detail-stat .stat-label {
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .item-detail-stat .stat-value {
@@ -1580,7 +1599,7 @@
 .loot-roller .item-detail-empty {
   font-size: 12px;
   font-style: italic;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
   text-align: center;
   padding: 8px;
 }
@@ -1601,7 +1620,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-light-7);
+  color: var(--lr-text-muted);
 }
 
 .loot-roller .lottery-item-detail {

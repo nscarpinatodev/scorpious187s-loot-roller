@@ -19,7 +19,7 @@ export class LootHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     id: "loot-hub-app",
     classes: ["loot-roller", "loot-hub"],
     window: { title: "LOOTROLLER.hub.title", icon: "fa-solid fa-coins", resizable: false },
-    position: { width: 560, height: "auto" },
+    position: { width: 420, height: "auto" },
   };
 
   static PARTS = {

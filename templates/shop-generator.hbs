@@ -97,9 +97,9 @@
 
   </div>
 
-  {{!-- Generated inventory --}}
-  {{#if hasItems}}
-    <div class="shop-inventory">
+  {{!-- Generated inventory (also a drop target for Compendium items) --}}
+  <div class="shop-inventory reward-list-drop-zone">
+    {{#if hasItems}}
       <div class="loot-results-header">
         <h3 class="section-label">
           <i class="fa-solid fa-boxes-stacked"></i>
@@ -149,8 +149,13 @@
           </button>
         {{/if}}
       </div>
-    </div>
-  {{/if}}
+    {{else}}
+      <div class="reward-drop-hint">
+        <i class="fa-solid fa-arrow-down-to-line"></i>
+        {{localize "LOOTROLLER.shop.dragDropHint"}}
+      </div>
+    {{/if}}
+  </div>
 
   {{/unless}}
 </div>
