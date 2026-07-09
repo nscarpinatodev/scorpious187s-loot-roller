@@ -96,7 +96,9 @@
 
 .loot-roller .btn-generate {
   padding: 8px 16px;
-  background: var(--color-button-active, #4a7a4a);
+  /* Fixed dark green: pairing white text with a Foundry UI variable broke on
+     light UI themes where that variable resolves to a pale colour. */
+  background: #4a7a4a;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -729,7 +731,11 @@
   grid-template-columns: 48px 1fr;
   grid-template-rows: auto auto;
   align-items: center;
-  padding: 16px 18px;
+  /* Foundry core fixes button height; without auto the two grid rows
+     overflow the button and spill across neighbouring buttons. */
+  height: auto;
+  min-height: 80px;
+  padding: 14px 18px;
   column-gap: 12px;
   row-gap: 3px;
   text-align: left;
@@ -737,7 +743,6 @@
   border: 1px solid var(--color-border-light);
   border-radius: 8px;
   cursor: pointer;
-  text-align: left;
   transition: background 0.15s, border-color 0.15s;
   width: 100%;
   box-sizing: border-box;
@@ -757,6 +762,8 @@
   grid-column: 1;
   grid-row: 1 / span 2;
   font-size: 30px;
+  line-height: 1;
+  align-self: center;
   text-align: center;
   color: var(--lr-text-muted);
 }
@@ -1646,7 +1653,12 @@
   --lr-text-secondary: var(--sqt-text-secondary, var(--scs-text-secondary));
   --lr-accent:         var(--sqt-accent,         var(--scs-accent));
   --lr-border:         var(--sqt-border,         var(--scs-border, var(--color-border-light)));
+  --lr-btn-bg:         var(--sqt-btn-bg,         var(--scs-btn-bg, var(--lr-accent)));
   --lr-btn-text:       var(--sqt-btn-text,       var(--scs-btn-text, #fff));
+  --lr-btn-hover:      var(--sqt-btn-hover,      var(--scs-btn-hover, var(--lr-accent)));
+  /* Themed windows get real theme colours for muted text — the base color-mix
+     derives from Foundry's UI text colour, which can be light-on-light here. */
+  --lr-text-muted:     var(--lr-text-secondary);
 }
 
 /* Frame + Foundry's opaque .window-content body (providers don't paint the body
@@ -1691,21 +1703,60 @@
   border-color: var(--lr-border) !important;
 }
 
-/* Buttons use the darkest surface (bg-header) as their background — it is the
-   one palette slot never reused as a text colour in any theme, so the bright
-   text always reads — with an accent border + accent icon for definition.
-   (Filling buttons with the accent itself made the label, which inherits the
-   near-identical text-primary in neon themes, impossible to read.) */
-.loot-roller[data-sqt-theme] :is(button[type=submit], .btn-roll, .btn-pass, .btn-primary, .hub-btn),
-.loot-roller[data-scs-theme] :is(button[type=submit], .btn-roll, .btn-pass, .btn-primary, .hub-btn) {
-  background: var(--lr-bg-header) !important;
+/* Action buttons use the theme's dedicated button pair (btn-bg / btn-text) —
+   every theme defines these two together with guaranteed contrast, unlike
+   text-primary, which is tuned against the window background and turns
+   light-on-light when a light theme is followed. This also covers the
+   generator buttons that previously hardcoded white text. */
+.loot-roller[data-sqt-theme] :is(button[type=submit], .btn-roll, .btn-pass, .btn-primary,
+    .btn-generate, .btn-distribute, .btn-save-list, .btn-restock, .btn-add-item, .btn-reroll, .btn-add-to-quest,
+    .btn-start-lottery, .btn-award-list, .btn-save-primary),
+.loot-roller[data-scs-theme] :is(button[type=submit], .btn-roll, .btn-pass, .btn-primary,
+    .btn-generate, .btn-distribute, .btn-save-list, .btn-restock, .btn-add-item, .btn-reroll, .btn-add-to-quest,
+    .btn-start-lottery, .btn-award-list, .btn-save-primary) {
+  background: var(--lr-btn-bg) !important;
+  color: var(--lr-btn-text) !important;
+  border: 1px solid var(--lr-btn-bg) !important;
+}
+
+.loot-roller[data-sqt-theme] :is(button[type=submit], .btn-roll, .btn-pass, .btn-primary,
+    .btn-generate, .btn-distribute, .btn-save-list, .btn-restock, .btn-add-item, .btn-reroll, .btn-add-to-quest,
+    .btn-start-lottery, .btn-award-list, .btn-save-primary):hover:not(:disabled),
+.loot-roller[data-scs-theme] :is(button[type=submit], .btn-roll, .btn-pass, .btn-primary,
+    .btn-generate, .btn-distribute, .btn-save-list, .btn-restock, .btn-add-item, .btn-reroll, .btn-add-to-quest,
+    .btn-start-lottery, .btn-award-list, .btn-save-primary):hover:not(:disabled) {
+  background: var(--lr-btn-hover) !important;
+  border-color: var(--lr-btn-hover) !important;
+}
+
+/* The hub menu buttons stay surface-styled (they are large panels, not action
+   buttons) — dark surface with themed text and an accent border. */
+.loot-roller[data-sqt-theme] .hub-btn,
+.loot-roller[data-scs-theme] .hub-btn {
+  background: var(--lr-bg-item) !important;
   color: var(--lr-text-primary) !important;
   border: 1px solid var(--lr-accent) !important;
 }
 
-.loot-roller[data-sqt-theme] :is(button[type=submit], .btn-roll, .btn-primary, .hub-btn):hover:not(:disabled),
-.loot-roller[data-scs-theme] :is(button[type=submit], .btn-roll, .btn-primary, .hub-btn):hover:not(:disabled) {
-  background: var(--lr-bg-item) !important;
+.loot-roller[data-sqt-theme] .hub-btn:hover:not(:disabled),
+.loot-roller[data-scs-theme] .hub-btn:hover:not(:disabled) {
+  background: var(--lr-bg-header) !important;
+}
+
+/* Filter buttons (rarity / item type): unselected text follows the theme's
+   muted colour; a generic selected state follows text-primary. The per-rarity
+   colour-coded .selected rules above are more specific and still win, so the
+   existing colour highlighting is preserved. */
+.loot-roller[data-sqt-theme] .filter-btn,
+.loot-roller[data-scs-theme] .filter-btn {
+  color: var(--lr-text-muted);
+  border-color: var(--lr-border);
+}
+
+.loot-roller[data-sqt-theme] .filter-btn.selected:not(.rarity-btn),
+.loot-roller[data-scs-theme] .filter-btn.selected:not(.rarity-btn) {
+  color: var(--lr-text-primary);
+  border-color: var(--lr-accent);
 }
 
 /* Hub menu icon picks up the accent for a touch of theme colour. */
