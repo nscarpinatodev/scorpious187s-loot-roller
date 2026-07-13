@@ -1,55 +1,39 @@
 /**
- * Theme following — Loot Roller has no theme of its own. When one of the sibling
- * Scorpious187 modules is active, Loot Roller windows adopt that module's theme so
- * the whole UI stays consistent. Priority: Quest Tracker, then Customizable Shop.
- * When neither is active, Loot Roller keeps its standard built-in styling.
+ * Theme following — Loot Roller has no theme of its own; its windows follow
+ * the family-wide theme owned by the shared library (scorpious187s-lib).
  *
- * Each provider owns its theming: we call the provider's own ThemeManager, which
- * sets its `--sqt-*` / `--scs-*` vars on :root and marks our window element with a
- * `data-sqt-theme` / `data-scs-theme` attribute. Our stylesheet reads whichever
- * prefix is present (see the [data-sqt-theme]/[data-scs-theme] rules in the CSS).
+ * The old sibling-provider hierarchy (Quest Tracker, then Customizable Shop)
+ * is gone: the library is the single authority. Loot Roller registers itself
+ * as a theming consumer; the library stamps `data-sqt-theme` on our windows
+ * (which this module's stylesheet reads) and keeps the `--sqt-*` variables
+ * mirrored on :root, whether or not Quest Tracker is installed.
  */
 
-/** Sibling theme providers in priority order (highest first). */
-const THEME_PROVIDERS = [
-  { id: "scorpious187s-quest-tracker",    attr: "sqtTheme" },
-  { id: "scorpious187s-customizable-shop", attr: "scsTheme" },
-];
+const MODULE_ID = "scorpious187s-loot-roller";
+const LIB_ID = "scorpious187s-lib";
 
-/** @returns {{id:string, attr:string, api:object}|null} The active provider, or null. */
-export function resolveProvider() {
-  for (const p of THEME_PROVIDERS) {
-    const mod = game.modules.get(p.id);
-    if (mod?.active && mod.api?.ThemeManager?.applyToElement) {
-      return { ...p, api: mod.api };
-    }
-  }
-  return null;
+/** Register with the library's theming registry. Call once from init. */
+export function registerThemeFollowing() {
+  const lib = game.modules.get(LIB_ID)?.api;
+  lib?.theming.register({
+    moduleId: MODULE_ID,
+    prefix: "--sqt-",
+    windowClass: "loot-roller",
+    datasetKey: "sqtTheme",
+    // Backgrounds come from this module's own [data-sqt-theme] CSS rules;
+    // no inline background forcing (matches the old provider behavior).
+    inlineTargets: [],
+  });
 }
 
 /**
- * Apply the active provider's theme to a Loot Roller window element, or clear any
- * previously-applied theme markers so the window falls back to standard styling.
+ * Apply the family theme to a Loot Roller window element.
  * @param {HTMLElement} el The application's root element.
  */
 export function applyFollowedTheme(el) {
   if (!el) return;
-  const provider = resolveProvider();
-
-  // No provider — strip any markers a provider left behind so our base CSS applies.
-  if (!provider) {
-    delete el.dataset.sqtTheme;
-    delete el.dataset.scsTheme;
-    return;
-  }
-
   try {
-    const themeId = game.settings.get(provider.id, "theme");
-    provider.api.ThemeManager.applyToElement(el, themeId);
-    // Guard against a stale marker from a different provider used last render.
-    for (const p of THEME_PROVIDERS) {
-      if (p.attr !== provider.attr) delete el.dataset[p.attr];
-    }
+    game.modules.get(LIB_ID)?.api?.theming.ThemeManager.applyToElement(el, MODULE_ID);
   } catch (err) {
     console.warn("LootRoller | theme follow failed:", err);
   }

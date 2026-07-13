@@ -1,8 +1,13 @@
 /**
  * Socket layer for Loot Roller.
  *
- * All messages flow through the single "module.scorpious187s-loot-roller" channel.
- * Schema: { type: MSG, payload: object, senderId: string }
+ * All messages flow through the single "module.scorpious187s-loot-roller"
+ * channel with the family message shape { type, payload, senderId }; the
+ * plumbing is the shared library's socket router.
+ *
+ * Handlers run on every client and branch on role explicitly: lottery state
+ * lives on the GM client that STARTED the lottery (mod.lotteryManager), which
+ * is not necessarily the primary GM — so these must not be primary-GM-gated.
  *
  * Direction key:
  *   GM → All   : broadcast to every connected client
@@ -24,7 +29,10 @@ export const MSG = Object.freeze({
   LOTTERY_COMPLETE: "lotteryComplete",
 });
 
-const CHANNEL = "module.scorpious187s-loot-roller";
+const MODULE_ID = "scorpious187s-loot-roller";
+const LIB_ID = "scorpious187s-lib";
+
+let _router = null;
 
 /**
  * Emit a socket message.
@@ -32,54 +40,51 @@ const CHANNEL = "module.scorpious187s-loot-roller";
  * @param {object} payload
  */
 export function emit(type, payload = {}) {
-  game.socket.emit(CHANNEL, { type, payload, senderId: game.user.id });
+  if (_router) _router.emit(type, payload);
+  else game.socket.emit(`module.${MODULE_ID}`, { type, payload, senderId: game.user.id });
 }
+
+const gmManager = () => game.modules.get(MODULE_ID).lotteryManager;
+const playerApp = () => game.modules.get(MODULE_ID).apps?.LotteryPlayerApp;
 
 /**
  * Register the socket listener. Called once from main.js init hook.
- * Routes incoming messages to the appropriate handler based on GM/player role.
  */
 export function registerSocketHandlers() {
-  game.socket.on(CHANNEL, (data) => {
-    const { type, payload, senderId } = data;
+  const lib = game.modules.get(LIB_ID)?.api;
+  if (!lib) {
+    console.error(`LootRoller | ${LIB_ID} is required for socket routing`);
+    return;
+  }
 
-    if (game.user.isGM) {
-      _handleGMMessage(type, payload, senderId);
-    } else {
-      _handlePlayerMessage(type, payload, senderId);
-    }
+  _router = lib.utils.makeSocketRouter(MODULE_ID, {
+    any: {
+      // Player → GM (aggregated by the lottery-running GM's manager)
+      [MSG.PLAYER_ROLL]: (payload, senderId) => {
+        if (!game.user.isGM) return;
+        gmManager()?.recordResponse(senderId, { roll: payload.roll });
+      },
+      [MSG.PLAYER_PASS]: (_payload, senderId) => {
+        if (!game.user.isGM) return;
+        gmManager()?.recordResponse(senderId, { pass: true });
+      },
+      // GM → players
+      [MSG.ITEM_UP_FOR_ROLL]: (payload) => {
+        if (game.user.isGM) return;
+        playerApp()?.openForItem(payload);
+      },
+      [MSG.TIE_BREAKER]: (payload) => {
+        if (game.user.isGM) return;
+        playerApp()?.openForTieBreaker(payload);
+      },
+      [MSG.ITEM_RESOLVED]: (payload) => {
+        if (game.user.isGM) return;
+        playerApp()?.closeAndAnnounce(payload);
+      },
+      [MSG.LOTTERY_COMPLETE]: () => {
+        if (game.user.isGM) return;
+        playerApp()?.closeAll();
+      },
+    },
   });
-}
-
-function _handleGMMessage(type, payload, senderId) {
-  const manager = game.modules.get("scorpious187s-loot-roller").lotteryManager;
-  if (!manager) return;
-
-  switch (type) {
-    case MSG.PLAYER_ROLL:
-      manager.recordResponse(senderId, { roll: payload.roll });
-      break;
-    case MSG.PLAYER_PASS:
-      manager.recordResponse(senderId, { pass: true });
-      break;
-  }
-}
-
-function _handlePlayerMessage(type, payload, senderId) {
-  const { LotteryPlayerApp } = game.modules.get("scorpious187s-loot-roller").apps;
-
-  switch (type) {
-    case MSG.ITEM_UP_FOR_ROLL:
-      LotteryPlayerApp.openForItem(payload);
-      break;
-    case MSG.TIE_BREAKER:
-      LotteryPlayerApp.openForTieBreaker(payload);
-      break;
-    case MSG.ITEM_RESOLVED:
-      LotteryPlayerApp.closeAndAnnounce(payload);
-      break;
-    case MSG.LOTTERY_COMPLETE:
-      LotteryPlayerApp.closeAll();
-      break;
-  }
 }

@@ -23,7 +23,7 @@ import { ShopGeneratorApp }       from "./apps/shop-generator-app.js";
 import { SavedListsApp }          from "./apps/saved-lists-app.js";
 import { CompendiumSettingsApp }  from "./apps/compendium-settings-app.js";
 import { ItemDetailApp }          from "./apps/item-detail-app.js";
-import { applyFollowedTheme, refreshOpenWindows } from "./theme-follow.js";
+import { registerThemeFollowing, applyFollowedTheme, refreshOpenWindows } from "./theme-follow.js";
 
 // System adapters — only one will self-register based on game.system.id
 import "./systems/dnd5e-adapter.js";
@@ -104,8 +104,11 @@ Hooks.once("init", () => {
   // Registered in init but adapter.getSettings() is called after ready when
   // game.i18n is available. We defer system settings to ready.
 
-  // ── Socket ───────────────────────────────────────────────────────────────
+  // ── Socket (routed through the shared library) ──────────────────────────
   registerSocketHandlers();
+
+  // ── Theme following (family theme owned by the shared library) ──────────
+  registerThemeFollowing();
 
   // ── Handlebars partials / helpers ─────────────────────────────────────────
   Handlebars.registerHelper("lootrollerEq", (a, b) => a === b);
@@ -157,13 +160,15 @@ Hooks.once("ready", () => {
   }
 
   // ── Theme following ──────────────────────────────────────────────────────
-  // Loot Roller has no theme of its own; its windows adopt the active sibling
-  // module's theme (Quest Tracker, then Customizable Shop). Apply on every
-  // Loot Roller window render, and re-apply live when a provider's theme changes.
+  // Loot Roller has no theme of its own; its windows follow the family theme
+  // owned by the shared library. Apply on every Loot Roller window render,
+  // and re-apply live when the theme changes (lib hook, plus the legacy
+  // sibling hooks for mixed-version installs).
   Hooks.on("renderApplicationV2", (app) => {
     const el = app?.element;
     if (el?.classList?.contains("loot-roller")) applyFollowedTheme(el);
   });
+  Hooks.on("s187lib.themeChanged", () => refreshOpenWindows());
   Hooks.on("sqt.themeChanged", () => refreshOpenWindows());
   Hooks.on("scs.themeChanged", () => refreshOpenWindows());
 
