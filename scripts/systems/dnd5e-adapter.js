@@ -11,9 +11,6 @@ import { CompendiumHelper } from "../compendium-helper.js";
 
 const MODULE_ID = "scorpious187s-loot-roller";
 
-/** True when running dnd5e 5.3.x or later. */
-const IS_DND5E_53 = () => foundry.utils.isNewerVersion(game.system.version, "5.2.99");
-
 /** Parse a dice formula string like "3d6", "4d6*100", "1d4-1" into a numeric result. */
 function _rollFormula(formula) {
   const match = formula.match(/^(\d+)d(\d+)(?:\*(\d+)|([+-]\d+))?$/i);
@@ -278,15 +275,15 @@ const SCROLL_RARITY_LEVELS = {
 };
 
 /**
- * Parse a spell scroll item name and return a spell level integer.
- * Handles both 2014 ("Spell Scroll (3rd Level)") and 2024 grouped formats
- * ("Spell Scroll (Cantrip or Level 1)"). Returns null for non-scroll names.
+ * Parse a generic spell scroll item name and return a spell level integer.
+ * Handles the dnd5e compendium names ("Spell Scroll 1st Level", "Spell Scroll,
+ * Level 1", "Spell Scroll, Cantrip") as well as parenthesized formats
+ * ("Spell Scroll (3rd Level)", "Spell Scroll (Cantrip or Level 1)").
+ * Returns null for non-scroll names, named scrolls, and the bare "Spell Scroll".
  */
 function _parseScrollRef(name) {
-  if (!name || !/^Spell Scroll/i.test(name)) return null;
-  const m = name.match(/\((.+?)\)/);
-  if (!m) return null;
-  const inner = m[1].toLowerCase();
+  if (!name || !/^Spell Scroll\b/i.test(name) || /^Spell Scroll of\b/i.test(name)) return null;
+  const inner = name.replace(/^Spell Scroll\b/i, "").toLowerCase();
   const levels = [];
   if (inner.includes("cantrip")) levels.push(0);
   for (const nm of inner.matchAll(/\b(\d+)(?:st|nd|rd|th)?\b/g)) {
@@ -307,10 +304,8 @@ function _parseScrollRef(name) {
  * @returns {Promise<Item|null>}
  */
 async function _findRandomSpellAtLevel(level) {
-  const spellPacks = [
-    ...(IS_DND5E_53() ? ["dnd5e.spells24"] : []),
-    "dnd5e.spells",
-  ].filter((id) => game.packs.has(id));
+  // Prefer 2024 spells; dnd5e 5.2.x and 5.3.x both ship spells24 alongside the legacy pack
+  const spellPacks = ["dnd5e.spells24", "dnd5e.spells"].filter((id) => game.packs.has(id));
 
   if (!spellPacks.length) {
     console.warn("LootRoller | No spell compendiums found — cannot create spell scrolls");
@@ -419,11 +414,7 @@ async function _createScrollAtLevel(level) {
  */
 async function _findScrollItems(rarities, limit, excludeNames) {
   const excluded = excludeNames instanceof Set ? excludeNames : new Set(excludeNames ?? []);
-  const eligibleLevels = [];
-  for (const r of (rarities ?? Object.keys(SCROLL_RARITY_LEVELS))) {
-    const key = r.toLowerCase().replace(/\s+/g, "");
-    eligibleLevels.push(...(SCROLL_RARITY_LEVELS[key] ?? []));
-  }
+  const eligibleLevels = _scrollLevelsForRarities(rarities ?? Object.keys(SCROLL_RARITY_LEVELS));
   if (!eligibleLevels.length) return [];
 
   const results = [];
@@ -436,6 +427,49 @@ async function _findScrollItems(rarities, limit, excludeNames) {
     }
   }
   return results;
+}
+
+/** Map rarity strings (any casing/spacing) to the spell levels a scroll of that rarity holds. */
+function _scrollLevelsForRarities(rarities) {
+  const levels = [];
+  for (const r of rarities ?? []) {
+    if (!r) continue;
+    levels.push(...(SCROLL_RARITY_LEVELS[r.toLowerCase().replace(/\s+/g, "")] ?? []));
+  }
+  return levels;
+}
+
+/**
+ * True for a compendium spell scroll that holds no actual spell — e.g.
+ * "Spell Scroll 1st Level", "Spell Scroll, Level 1", or the bare "Spell Scroll".
+ * Named scrolls ("Spell Scroll of Fireball") and other scrolls are left alone.
+ */
+function _isGenericScroll(item) {
+  if (!item || item.type !== "consumable") return false;
+  const name = item.name ?? "";
+  return /^Spell Scroll\b/i.test(name) && !/^Spell Scroll of\b/i.test(name);
+}
+
+/**
+ * Replace a generic spell scroll with a named scroll holding a random real spell.
+ * The level comes from `rarities` when given (so hoard slots match their tier),
+ * otherwise the level in the scroll's name, then the scroll's own rarity, then any level.
+ * Returns the item unchanged if it isn't generic or no spell could be found.
+ */
+async function _convertGenericScroll(item, rarities) {
+  if (!_isGenericScroll(item)) return item;
+
+  let levels = _scrollLevelsForRarities(rarities);
+  if (!levels.length) {
+    const named = _parseScrollRef(item.name);
+    levels = named !== null ? [named] : _scrollLevelsForRarities([item.system?.rarity]);
+  }
+  if (!levels.length) levels = SCROLL_LEVEL_DATA.map((_, lvl) => lvl);
+
+  const level  = levels[Math.floor(Math.random() * levels.length)];
+  const scroll = await _createScrollAtLevel(level);
+  if (!scroll) console.warn(`LootRoller | Could not convert "${item.name}" — no level ${level} spell found`);
+  return scroll ?? item;
 }
 
 /**
@@ -584,37 +618,24 @@ export class DnD5eAdapter {
       if (ref._scrollLevel !== undefined) {
         const data = await _createScrollAtLevel(ref._scrollLevel);
         if (data) { resolved.push(data); continue; }
-        // API unavailable — fall through to rarity-based compendium lookup
+        // No spell found — fall through to rarity-based compendium lookup
       }
 
       // ── Magic item placeholder: pick from active compendiums by rarity ────────
       if (ref._placeholder || ref._scrollLevel !== undefined) {
-        const [item] = await CompendiumHelper.findItems(activePacks, {
+        const [found] = await CompendiumHelper.findItems(activePacks, {
           rarities:     [ref.rarity],
           limit:        1,
           excludeNames: allowDupes ? null : usedNames,
         });
+        // Generic spell scroll → named scroll at a level matching the placeholder rarity
+        const item = await _convertGenericScroll(found, [ref.rarity]);
+        if (item && item !== found) {
+          usedNames.add(item.name);
+          resolved.push(item);
+          continue;
+        }
         if (item) {
-          // Generic spell scroll → replace with a named scroll containing a real spell
-          const isGenericScroll = (item.type === "consumable" && item.system?.type?.value === "scroll")
-            || /^Spell Scroll/i.test(item.name);
-
-          if (isGenericScroll) {
-            // Use the placeholder rarity to pick the appropriate spell level range,
-            // then select randomly within it — don't use the scroll item's name level
-            // since a generic pool scroll might have the wrong level for this rarity tier.
-            const rarityKey   = (ref.rarity ?? "").toLowerCase().replace(/\s+/g, "");
-            const levels      = SCROLL_RARITY_LEVELS[rarityKey] ?? [_parseScrollRef(item.name) ?? 1];
-            const spellLevel  = levels[Math.floor(Math.random() * levels.length)];
-            const namedScroll = await _createScrollAtLevel(spellLevel);
-
-            if (namedScroll) {
-              usedNames.add(namedScroll.name);
-              resolved.push(namedScroll);
-              continue;
-            }
-          }
-
           usedNames.add(item.name);
           // Rare and above arrive on actors as unidentified
           const MYSTIFY = new Set(["rare", "veryRare", "legendary"]);
@@ -677,13 +698,14 @@ export class DnD5eAdapter {
           if (data) { resolved.push(data); continue; }
         }
         const byName = await CompendiumHelper.findByName(ref.name, activePacks);
-        if (byName) { resolved.push(byName); continue; }
+        if (byName) { resolved.push(await _convertGenericScroll(byName)); continue; }
         if (ref.rarity) {
-          const [fallback] = await CompendiumHelper.findItems(activePacks, {
+          const [found] = await CompendiumHelper.findItems(activePacks, {
             rarities:     [ref.rarity],
             limit:        1,
             excludeNames: allowDupes ? null : usedNames,
           });
+          const fallback = await _convertGenericScroll(found, [ref.rarity]);
           if (fallback) { usedNames.add(fallback.name); resolved.push(fallback); continue; }
         }
         resolved.push({
@@ -806,29 +828,31 @@ export class DnD5eAdapter {
           const [scroll] = await _findScrollItems(rarities, 1, excluded);
           if (scroll) { excluded.add(scroll.name); results.push(scroll); continue; }
         }
-        const [item] = await CompendiumHelper.findItems(DnD5eAdapter.getActivePacks(), {
+        const [found] = await CompendiumHelper.findItems(DnD5eAdapter.getActivePacks(), {
           types: nonScrollTypes,
           rarities: rarityNorms,
           limit: 1,
           excludeNames: excluded,
         });
+        const item = await _convertGenericScroll(found);
         if (item) { excluded.add(item.name); results.push(item); }
       }
       return results;
     }
 
+    // Generic spell scrolls in the pool (e.g. "Spell Scroll 1st Level") become named scrolls
     const rarityNorms = rarities?.map((r) => r.toLowerCase().replace(/\s+/g, ""));
-    return CompendiumHelper.findItems(DnD5eAdapter.getActivePacks(), {
+    const found = await CompendiumHelper.findItems(DnD5eAdapter.getActivePacks(), {
       types: types?.length ? types : null,
       rarities: rarityNorms?.length ? rarityNorms : null,
       limit,
       excludeNames,
     });
+    return Promise.all(found.map((item) => _convertGenericScroll(item)));
   }
 
   /**
    * Create a spell scroll item data object from a spell document.
-   * Exposed so the Quest Generator can convert dragged spells to scrolls.
    *
    * @param {Item} spellDoc
    * @returns {Promise<object|null>}
@@ -838,6 +862,25 @@ export class DnD5eAdapter {
       return _createScrollFromSpellDoc(spellDoc);
     } catch (err) {
       console.error("LootRoller | createScrollFromSpell failed:", err);
+      return null;
+    }
+  }
+
+  /**
+   * Turn a dropped spell or generic spell scroll into a named spell scroll.
+   * Used by the Quest and Shop Generator drop zones.
+   *
+   * @param {Item} item
+   * @returns {Promise<object|null>} Scroll item data, or null to store the item as-is.
+   */
+  static async scrollFromDroppedItem(item) {
+    try {
+      if (item?.type === "spell") return _createScrollFromSpellDoc(item);
+      if (!_isGenericScroll(item)) return null;
+      const scroll = await _convertGenericScroll(item);
+      return scroll === item ? null : scroll;
+    } catch (err) {
+      console.error("LootRoller | scrollFromDroppedItem failed:", err);
       return null;
     }
   }

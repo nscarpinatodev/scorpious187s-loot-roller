@@ -205,6 +205,13 @@ export class ShopGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (data.type !== "Item") return;
     const item = await fromUuid(data.uuid);
     if (!item) return;
+    // Spells and generic spell scrolls become named scrolls holding a real spell
+    const scroll = await LootRoller.getAdapter()?.scrollFromDroppedItem?.(item);
+    if (scroll) {
+      this._items.push(scroll);
+      this._renderKeepScroll();
+      return;
+    }
     const stored = item.toObject();
     stored.uuid        = item.uuid;
     stored._sourceUuid = item.uuid;

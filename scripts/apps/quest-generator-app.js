@@ -221,15 +221,16 @@ export class QuestGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (data.type !== "Item") return;
     const item = await fromUuid(data.uuid);
     if (!item) return;
+    // Spells and generic spell scrolls become named scrolls holding a real spell
+    const adapter = LootRoller.getAdapter();
+    const scroll  = await adapter?.scrollFromDroppedItem?.(item);
+    if (scroll) {
+      this._items.push(scroll);
+      this.render(false);
+      return;
+    }
     if (item.type === "spell") {
-      const adapter = LootRoller.getAdapter();
-      const scroll  = await adapter?.createScrollFromSpell?.(item);
-      if (scroll) {
-        this._items.push(scroll);
-        this.render(false);
-      } else {
-        ui.notifications.warn(game.i18n.localize("LOOTROLLER.quest.noSpells"));
-      }
+      ui.notifications.warn(game.i18n.localize("LOOTROLLER.quest.noSpells"));
       return;
     }
     const stored = item.toObject();
