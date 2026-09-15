@@ -2,7 +2,7 @@
   "id": "scorpious187s-loot-roller",
   "title": "Scorpious187's Loot Roller",
   "description": "A system-agnostic loot generator with a real-time player lottery/roll-off system. Supports D&D 5e, Pathfinder 2e, Starfinder 2e, and Fallout 2d20 out of the box. Items are pulled from system compendiums. Additional systems can register via the plugin API.",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
